@@ -44,6 +44,8 @@ def get_score_text(x,y):
 def main():
     pygame.init()
     pygame.font.init() 
+    pygame.display.set_caption('Pong')
+
     size = width, height = 1024, 512
     black = 0,0,0
     ball_speed = 5
@@ -113,7 +115,6 @@ def main():
                 ball.reset()
 
 
-
         text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
 
         if time.time() - start_time >= 1.0 / fps:
@@ -134,10 +135,6 @@ def main():
 
 
         pygame.display.flip()
-            
-
-
-    return
     
 
 if __name__ == '__main__':

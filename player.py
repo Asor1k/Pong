@@ -11,9 +11,9 @@ is_started_game = False
 
 class EnemyData:
     def __init__(self) -> None:
-        self.enemyPositiony = 0
-        self.ballPositionX = 0
-        self.ballPositionY = 0
+        self.enemyPositiony = float(0)
+        self.ballPositionX = float(0)
+        self.ballPositionY = float(0)
 
 enemyData = EnemyData()
 
@@ -26,7 +26,6 @@ class Peer:
 
     def connect(self, peer_host, peer_port):
         connection = socket.create_connection((peer_host, peer_port))
-
         self.connections.append(connection)
         print(f"Connected to {peer_host}:{peer_port}")
         return connection
@@ -67,7 +66,9 @@ class Peer:
             replaced = data.replace("DATA", "")
             global enemyData
             values = replaced.split(";")
-            enemyData.enemyPositiony = values[0]
+            enemyData.enemyPositiony = float(values[0])
+            enemyData.ballPositionX = float(values[1])
+            enemyData.ballPositionY = float(values[2])
         if data.startswith("START"):
             global is_started_game
             is_started_game = True
@@ -115,7 +116,7 @@ class Peer:
 
 size = width, height = 1024, 512
 black = 0,0,0
-server_host = "127.0.0.1"
+server_host = "172.20.10.5"
 server_port = 8002
 
 
@@ -163,7 +164,6 @@ class Client:
         self.node.start()
         self.start_game()
 
-
     def start_game(self):
         pygame.init()
         pygame.font.init() 
@@ -195,8 +195,8 @@ class Client:
         try:
             self.node.connect(server_host, server_port)
             time.sleep(1)
-        except socket.error:
-            print("Unable to connect to the server!")
+        except socket.error as err:
+            print("Unable to connect to the server! " + str(err))
             exit()
 
         time.sleep(1)
@@ -299,27 +299,40 @@ class Client:
                     colided_time = time.time()
 
                 if ball.transform.centerx >= width:
-                    # Player 1 scored a point
+                    # Player left scored a point
                     score = (score[0] + 1, score[1])
                     colided_time = time.time()
                     ball.reset()
 
+                if ball.transform.centerx <= 0:
+                    # Player right scored a point
+                    score = (score[0], score[1] + 1)
+                    colided_time = time.time()
+                    ball.reset()
+
+            # ownPosition;ballPositionX;ballPositionY
+
+            enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
+            if is_player_right:
+                self.node.send_data_to_enemy(f"DATA {player.transform.centery};-1;-1\n")
+            else:
+                self.node.send_data_to_enemy(f"DATA {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
 
             text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
 
             if time.time() - start_time >= 1.0 / fps:
-                ball.move()
+                if is_player_right:
+                    ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+                else:
+                    ball.move()
+
                 if player_moving_up:
                     player.move((0, player.player_velocity))
                 if player_moving_down:
                     player.move((0, -player.player_velocity))
 
                 start_time = time.time()
-                enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))
-                self.node.send_data_to_enemy("DATA " + str(player.transform.centery) + "\n")
-                send_wait_time = time.time()
 
-                # ownPosition;ballPositionX;ballPositionY
 
            # ball.move([1,1])
             screen.fill(black)

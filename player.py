@@ -302,27 +302,34 @@ class Client:
                     # Player left scored a point
                     score = (score[0] + 1, score[1])
                     colided_time = time.time()
+                    time.sleep(0.2)
                     ball.reset()
 
                 if ball.transform.centerx <= 0:
                     # Player right scored a point
                     score = (score[0], score[1] + 1)
                     colided_time = time.time()
+                    time.sleep(0.2)
                     ball.reset()
 
             # ownPosition;ballPositionX;ballPositionY
 
-            enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
-            if is_player_right:
-                self.node.send_data_to_enemy(f"DATA {player.transform.centery};-1;-1\n")
-            else:
-                self.node.send_data_to_enemy(f"DATA {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
-
+            #enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
+            enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))
+            
             text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
+
+            if time.time() - send_wait_time >= 0.5 / fps:
+                if is_player_right:
+                    self.node.send_data_to_enemy(f"DATA {player.transform.centery};-1;-1\n")
+                else:
+                    self.node.send_data_to_enemy(f"DATA {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
+                send_wait_time = time.time()
 
             if time.time() - start_time >= 1.0 / fps:
                 if is_player_right:
-                    ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+                    ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
+                    #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
                 else:
                     ball.move()
 

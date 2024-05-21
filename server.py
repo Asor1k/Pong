@@ -2,6 +2,12 @@ import socket
 import threading
 
 
+
+def get_computer_remote_ip():
+    #Hack to get local IP of this PC if the server is launched localy
+    return [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+
+
 class Player:
     def __init__(self, connection, address, port) -> None:
         self.address = address
@@ -35,8 +41,8 @@ class Peer:
 
 
     def start_fight(self, player1, player2):
-        message1 = f"START GAME WITH {player2.address}:{player2.port}\n"
-        message2 = f"START GAME WITH {player1.address}:{player1.port}\n"
+        message1 = f"START GAME WITH L {player2.address}:{player2.port}\n"
+        message2 = f"START GAME WITH R {player1.address}:{player1.port}\n"
         
         player1.connection.sendall(message1.encode())
         player2.connection.sendall(message2.encode())
@@ -66,18 +72,22 @@ class Peer:
 
     def handle_data(self, data, address):
         if data.startswith("HELLO"):
+            connect_address = address[0]
+            if connect_address.startswith("127."):
+                connect_address = get_computer_remote_ip()
             if len(self.players) == 0:
-                connection = self.connect(address[0], 8000)
+                connection = self.connect(connect_address, 8000)
                 time.sleep(1)
                 connection.sendall("HELLO YOU TOO\n".encode())
 
             if len(self.players) >= 1:
-                connection = self.connect(address[0], 8001)
+
+                connection = self.connect(connect_address, 8000)
                 time.sleep(1)
                 connection.sendall("HELLO YOU TOO\n".encode())
-                self.start_fight(self.players[-1], Player(connection, address[0], address[1]))
+                self.start_fight(self.players[-1], Player(connection, connect_address, address[1]))
                 self.players.remove(self.players[-1])
-            self.players.append(Player(connection, address[0], address[1]))
+            self.players.append(Player(connection, connect_address, address[1]))
 
 
     def handle_client(self, connection, address):
@@ -106,7 +116,6 @@ class Peer:
 
 
 if __name__ == "__main__":
-
 
     import time
     time.sleep(2)

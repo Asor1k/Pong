@@ -6,6 +6,15 @@ import time, math
 
 enemy_address = ("0.0.0.0", 8000)
 is_connected = False
+is_player_right = False
+
+class EnemyData:
+    def __init__(self) -> None:
+        self.enemyPositiony = 0
+        self.ballPositionX = 0
+        self.ballPositionY = 0
+
+enemyData = EnemyData()
 
 class Peer:
     def __init__(self, host, port):
@@ -44,7 +53,19 @@ class Peer:
         if data.startswith("START GAME WITH"):
             replaced = data.replace("START GAME WITH", "")
             replaced = replaced.strip()
+            global is_player_right
+            if replaced[0] == 'R':
+                is_player_right = True
+
+            replaced = replaced[1:].strip()
+
             self.start_game(replaced.split(":"))
+            
+        if data.startswith("DATA"):
+            replaced = data.replace("DATA", "")
+            global enemyData
+            values = replaced.split(";")
+            enemyData.enemyPositiony = int(values[0])
 
     def send_data(self, data):
         for connection in self.connections:
@@ -175,10 +196,10 @@ class Client:
             if is_connected:
                 break
             time.sleep(1)
-            print("Connecting...")
+            print("Waiting in the queue...")
 
         print("Connected!")
-        time.sleep(10)
+        time.sleep(3)
 
         ball_speed = 5
         MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
@@ -188,11 +209,15 @@ class Client:
 
         ball = Ball(pygame.image.load("ball.jpg"), ball_speed)
         ball.reset()
-        player1 = Player(pygame.image.load("player.jpg"))
-        player2 = Player(pygame.image.load("player.jpg"))
+        player = Player(pygame.image.load("player.jpg"))
+        enemy = Player(pygame.image.load("player.jpg"))
 
-        player1.transform.center = (0, height/2)
-        player2.transform.center = (width, height/2)
+        if not is_player_right:
+            player.transform.center = (0, height/2)
+            enemy.transform.center = (width, height/2)
+        else:
+            enemy.transform.center = (0, height/2)
+            player.transform.center = (width, height/2)
 
         fps = 60
         start_time = time.time()
@@ -202,27 +227,27 @@ class Client:
         text_surface = my_font.render(get_score_text(0,0), False, (255, 255, 255))
 
 
-        player1_moving_up = False
-        player1_moving_down = False
+        player_moving_up = False
+        player_moving_down = False
 
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                        player1_moving_up = True
+                        player_moving_up = True
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
-                        player1_moving_down = True
+                        player_moving_down = True
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                        player1_moving_up = False
+                        player_moving_up = False
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
-                        player1_moving_down = False                
+                        player_moving_down = False                
 
             if time.time() - colided_time > 0.4:
-                if ball.transform.colliderect(player1.transform):
-                    relativeIntersectY = ball.transform.centery - player1.transform.centery
+                if ball.transform.colliderect(player.transform):
+                    relativeIntersectY = ball.transform.centery - player.transform.centery
                     normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
                     bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
                     ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
@@ -249,21 +274,22 @@ class Client:
 
             if time.time() - start_time >= 1.0 / fps:
                 ball.move()
-                if player1_moving_up:
-                    player1.move((0, player1.player_velocity))
-                if player1_moving_down:
-                    player1.move((0, -player1.player_velocity))
+                if player_moving_up:
+                    player.move((0, player.player_velocity))
+                if player_moving_down:
+                    player.move((0, -player.player_velocity))
 
                 start_time = time.time()
-
-                self.node.send_data(str(player1.transform.centerx) + " : " + str(player1.transform.centery) + "\n")
+                enemy.transform.centery = enemyData.enemyPositiony
+                # ownPosition;ballPositionX;ballPositionY
+                self.node.send_data("DATA " + str(player.transform.centery) + "\n")
                 #print("Sent data")
 
            # ball.move([1,1])
             screen.fill(black)
             screen.blit(ball.model, ball.transform)
-            screen.blit(player1.model, player1.transform)
-            screen.blit(player2.model, player2.transform)
+            screen.blit(player.model, player.transform)
+            screen.blit(enemy.model, enemy.transform)
             screen.blit(text_surface, (width / 2 - 60, 0))
 
 

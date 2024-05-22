@@ -1,7 +1,7 @@
 import socket
 import threading
-
-
+from pyngrok import ngrok
+import os
 
 def get_computer_remote_ip():
     #Hack to get local IP of this PC if the server is launched localy
@@ -122,6 +122,21 @@ if __name__ == "__main__":
 
     node2 = Peer("0.0.0.0", 8002)
     node2.start()
+   
+   # os.environ["HOST"] = "0.tcp.ngrok.io"
+
+
+    #host = os.environ.get("HOST")
+    #port = int(os.environ.get("PORT"))
+
+    #print(host)
+    #time.sleep(1)
+    # Open a ngrok tunnel to the socket
+    #public_url = ngrok.connect(port, "tcp", remote_addr=f"{host}:{port}").public_url
+    #print(f"ngrok tunnel \"{public_url}\" -> \"tcp://127.0.0.1:{port}\"")
+
+#rd_2gpj0qyZlza1whSoCwo0TQ7jyNf
+#included-serval-amazingly.ngrok-free.app
 
     #node2.connect("127.0.0.1", 8000)
     time.sleep(1)  # Allow connection to establish

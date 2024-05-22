@@ -116,8 +116,8 @@ class Peer:
 
 size = width, height = 1024, 512
 black = 0,0,0
-server_host = "172.20.10.5"
-server_port = 8002
+server_host = "0.tcp.eu.ngrok.io"
+server_port = 18601
 
 
 class Ball:
@@ -248,6 +248,7 @@ class Client:
 
         player_moving_up = False
         player_moving_down = False
+        clock = pygame.time.Clock()
 
         while True:
             for event in pygame.event.get():
@@ -339,7 +340,7 @@ class Client:
                     player.move((0, -player.player_velocity))
 
                 start_time = time.time()
-
+            
 
            # ball.move([1,1])
             screen.fill(black)
@@ -348,7 +349,7 @@ class Client:
             screen.blit(enemy.model, enemy.transform)
             screen.blit(text_surface, (width / 2 - 60, 0))
 
-
+            clock.tick(fps)
             pygame.display.flip()
 
 

@@ -220,7 +220,7 @@ def get_score_text(x,y):
 def check_collision(ball, paddle):
     # Ball's current and next position
     #current_pos = ball.transform.center
-    next_pos = (ball.transform.centerx + ball.speed[0], ball.transform.centery + ball.speed[1])
+    next_pos = (ball.transform.centerx + 2 * ball.speed[0], ball.transform.centery + 2 * ball.speed[1])
     
     # Paddle boundaries
     paddle_top = paddle.top
@@ -307,7 +307,7 @@ class Client:
         MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
         paddle_height = 100
         # Initialize game objects
-        ball = Ball(pygame.image.load("ball.jpg"), ball_speed)
+        ball = Ball(pygame.image.load("cat.png"), ball_speed)
         ball.reset()
         player = Player(pygame.image.load("player.jpg"))
         enemy = Player(pygame.image.load("player.jpg"))
@@ -334,6 +334,16 @@ class Client:
         player_moving_up = False
         player_moving_down = False
         clock = pygame.time.Clock()    # Create a clock object to manage the frame rate
+
+        collided_up = False
+        collided_down = False
+        collided_right = False
+        collided_left = False
+        up_delay = time.time()
+        down_delay = time.time()
+        right_delay = time.time()
+        left_delay = time.time()
+
 
         while True:
              # Handle events
@@ -403,50 +413,62 @@ class Client:
 
             self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
             
-            if time.time() - colided_time > 0.3:
-                # Check for collisions and handle ball movement
-                leftTransform = enemy.transform if is_player_right else player.transform
-                rightTransform = player.transform if is_player_right else enemy.transform
+            # Check for collisions and handle ball movement
+            leftTransform = enemy.transform if is_player_right else player.transform
+            rightTransform = player.transform if is_player_right else enemy.transform
+            if (ball.transform.colliderect(leftTransform) or check_collision(ball, leftTransform)) and not collided_left:    # Ball collides with left paddle
+                relativeIntersectY = ball.transform.centery - leftTransform.centery
+                normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
+                bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
+                ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
+                ball.accumulated_speed = (0, 0)
+                ball.move()
+                collided_left = True
+                left_delay = time.time()
 
-                if ball.transform.colliderect(leftTransform) or check_collision(ball, leftTransform):    # Ball collides with left paddle
-                    relativeIntersectY = ball.transform.centery - leftTransform.centery
-                    normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
-                    bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
-                    ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
-                    ball.accumulated_speed = (0, 0)
-                    ball.move()
-                    colided_time = time.time()
+            if (ball.transform.colliderect(rightTransform) or check_collision(ball, leftTransform)) and not collided_right:    # Ball collides with right paddle
+                relativeIntersectY = ball.transform.centery - rightTransform.centery
+                normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
+                bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
+                ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
+                ball.accumulated_speed = (0, 0)
+                ball.move()
+                collided_right = True
+                right_delay = time.time()
 
-                if ball.transform.colliderect(rightTransform) or check_collision(ball, leftTransform):    # Ball collides with right paddle
-                    relativeIntersectY = ball.transform.centery - rightTransform.centery
-                    normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
-                    bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
-                    ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
-                    ball.accumulated_speed = (0, 0)
-                    ball.move()
-                    colided_time = time.time()
+            if ((ball.transform.top <= 0 or ball.transform.bottom >= height)) and (not collided_up or not collided_down) :    # Ball collides with top or bottom wall
+                if ball.transform.top <= 0:
+                    collided_down = True
+                    down_delay = time.time()
+                else:
+                    collided_up = True
+                    up_delay = time.time()
+                ball.accumulated_speed = (0, 0)
+                ball.speed = (ball.speed[0], -ball.speed[1])
+                ball.move()
+                
+            if time.time() - down_delay >= 0.3:
+                collided_down = False
+            if time.time() - up_delay >= 0.3:
+                collided_up = False
+            if time.time() - right_delay >= 0.3:
+                collided_right = False
+            if time.time() - left_delay >= 0.3:
+                collided_left = False
 
+                
+            if ball.transform.centerx >= width:     # Ball exits right side
+                # Player left scored a point
+                score = (score[0] + 1, score[1])
+                #time.sleep(0.2) Send to reset ball
+                ball.reset()
 
-                if (ball.transform.top <= 0 or ball.transform.bottom >= height):    # Ball collides with top or bottom wall
-                    ball.accumulated_speed = (0, 0)
-                    ball.speed = (ball.speed[0], -ball.speed[1])
-                    ball.move()
-                    colided_time = time.time()
+            if ball.transform.centerx <= 0:     # Ball exits left side
+                # Player right scored a point
+                score = (score[0], score[1] + 1)
+                #time.sleep(0.2)
+                ball.reset()
 
-                if ball.transform.centerx >= width:     # Ball exits right side
-                    # Player left scored a point
-                    score = (score[0] + 1, score[1])
-                    colided_time = time.time()
-                    #time.sleep(0.2) Send to reset ball
-
-                    ball.reset()
-
-                if ball.transform.centerx <= 0:     # Ball exits left side
-                    # Player right scored a point
-                    score = (score[0], score[1] + 1)
-                    colided_time = time.time()
-                    #time.sleep(0.2)
-                    ball.reset()
 
 
            # ball.move([1,1])

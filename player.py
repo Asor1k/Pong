@@ -17,19 +17,22 @@ class EnemyData:
 
 enemyData = EnemyData()
 
+# Peer class to handle networking
 class Peer:
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections = []
-
+    
+    # Connect to another peer
     def connect(self, peer_host, peer_port):
         connection = socket.create_connection((peer_host, peer_port))
         self.connections.append(connection)
         print(f"Connected to {peer_host}:{peer_port}")
         return connection
 
+    # Listen for incoming connections
     def listen(self):
         self.socket.bind((self.host, self.port))
         self.socket.listen(10)
@@ -42,14 +45,15 @@ class Peer:
             threading.Thread(target=self.handle_client, args=(connection, address)).start()
             # Let's say we get this connection from the server. Make dynamic and move elsewhere 
             #self.connect("127.0.0.1", 8002)
-
+    
+    # Start the game with an enemy at the given address
     def start_game(self, address):
         self.enemyConnection = self.connect(address[0], 8000)
         print(f"Connected with player on {address[0]}:{address[1]}")
         global is_connected
         is_connected = True
 
-
+    # Handle incoming data
     def handle_data(self, data):
         if data.startswith("START GAME WITH"):
             replaced = data.replace("START GAME WITH", "")
@@ -74,6 +78,7 @@ class Peer:
             is_started_game = True
             print("Got start!")
 
+    # Send data to all connections
     def send_data(self, data):
         for connection in self.connections:
             try:
@@ -108,7 +113,8 @@ class Peer:
         print(f"Connection from {address} closed.")
         self.connections.remove(connection)
         connection.close()
-
+   
+    # Start listening for connections
     def start(self):
         listen_thread = threading.Thread(target=self.listen)
         listen_thread.start()
@@ -119,7 +125,7 @@ black = 0,0,0
 server_host = "192.168.0.175"
 server_port = 8002
 
-
+# Ball class to represent the pong ball
 class Ball:
     def __init__(self, model, velocity):
         self.model = model
@@ -130,26 +136,30 @@ class Ball:
         self.speed = (0, 0)
 
     def move(self):
+        # Update accumulated speed
         self.accumulated_speed = (self.accumulated_speed[0] + self.speed[0], self.accumulated_speed[1] + self.speed[1])
-
+         # Determine the integer movement step
         step_move_speed = (int(self.accumulated_speed[0]), int(self.accumulated_speed[1]))
-
+        # Update accumulated speed to reflect the fractional part
         self.accumulated_speed = (self.accumulated_speed[0] - step_move_speed[0], self.accumulated_speed[1] - step_move_speed[1])
-
+        # Move the ball's position
         self.transform = self.transform.move(step_move_speed)
-
+        
+    # Reset the ball to the center of the screen and set its initial speed
     def reset(self):
         self.transform.center = (width/2, height/2)
         self.speed = (-self.velocity, 0)
 
 
-
+# Player class to represent the paddles
 class Player:
     def __init__(self, model):
         self.model = model
         self.model = pygame.transform.scale(self.model, (25, 100))
         self.transform = self.model.get_rect()
         self.velocity = 5
+        
+    # Move the paddle based on the given speed
     def move(self, speed):
         self.transform = self.transform.move(speed)
 
@@ -157,7 +167,7 @@ class Player:
 def get_score_text(x,y):
     return f"{x} : {y}"
 
-
+# Client class to handle game logic and communication
 class Client:
     def __init__(self, port):
         self.node = Peer("0.0.0.0", port)
@@ -165,13 +175,14 @@ class Client:
         self.start_game()
 
     def start_game(self):
+        # Initialize Pygame and set up the screen
         pygame.init()
         pygame.font.init() 
         pygame.display.set_caption('Pong')
 
         my_font = pygame.font.SysFont('Futura', 60)
         screen = pygame.display.set_mode(size)
-
+         # Show welcome screen until mouse is clicked
         while True:
             clicked = False
             for event in pygame.event.get():
@@ -219,7 +230,7 @@ class Client:
         ball_speed = 5
         MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
         paddle_height = 100
-
+        # Initialize game objects
         ball = Ball(pygame.image.load("ball.jpg"), ball_speed)
         ball.reset()
         player = Player(pygame.image.load("player.jpg"))
@@ -238,37 +249,39 @@ class Client:
         score = (0, 0)
         send_wait_time = time.time()
         text_surface = my_font.render(get_score_text(0,0), False, (255, 255, 255))
-
+        # Notify the enemy that the game has started
         self.node.send_data_to_enemy("START\n")
+        # Wait for the game to start
         global is_started_game
         while not is_started_game:
             continue
-
+        # Initialize player movement flags
         player_moving_up = False
         player_moving_down = False
-        clock = pygame.time.Clock()
+        clock = pygame.time.Clock()    # Create a clock object to manage the frame rate
 
         while True:
+             # Handle events
             for event in pygame.event.get():
-                if event.type == pygame.QUIT: sys.exit()
-                if event.type == pygame.KEYDOWN:
+                if event.type == pygame.QUIT: sys.exit()    # Quit the game
+                if event.type == pygame.KEYDOWN:    # Handle key press events
                     if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                         player_moving_up = True
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = True
 
-                if event.type == pygame.KEYUP:
+                if event.type == pygame.KEYUP:    # Handle key release events
                     if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                         player_moving_up = False
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = False                
 
             if time.time() - colided_time > 0.4:
-
+                # Check for collisions and handle ball movement
                 leftTransform = enemy.transform if is_player_right else player.transform
                 rightTransform = player.transform if is_player_right else enemy.transform
 
-                if ball.transform.colliderect(leftTransform):
+                if ball.transform.colliderect(leftTransform):    # Ball collides with left paddle
                     relativeIntersectY = ball.transform.centery - leftTransform.centery
                     normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
                     bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
@@ -277,7 +290,7 @@ class Client:
                     ball.move()
                     colided_time = time.time()
 
-                if ball.transform.colliderect(rightTransform):
+                if ball.transform.colliderect(rightTransform):    # Ball collides with right paddle
                     relativeIntersectY = ball.transform.centery - rightTransform.centery
                     normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
                     bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
@@ -287,20 +300,20 @@ class Client:
                     colided_time = time.time()
 
 
-                if (ball.transform.top <= 0 or ball.transform.bottom >= height):
+                if (ball.transform.top <= 0 or ball.transform.bottom >= height):    # Ball collides with top or bottom wall
                     ball.accumulated_speed = (0, 0)
                     ball.speed = (ball.speed[0], -ball.speed[1])
                     ball.move()
                     colided_time = time.time()
 
-                if ball.transform.centerx >= width:
+                if ball.transform.centerx >= width:     # Ball exits right side
                     # Player left scored a point
                     score = (score[0] + 1, score[1])
                     colided_time = time.time()
                     time.sleep(0.2)
                     ball.reset()
 
-                if ball.transform.centerx <= 0:
+                if ball.transform.centerx <= 0:     # Ball exits left side
                     # Player right scored a point
                     score = (score[0], score[1] + 1)
                     colided_time = time.time()
@@ -312,15 +325,17 @@ class Client:
 
             #enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
             #enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))
-            
+
+            # Update the score display
             text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
+            # Determine player direction for data transmission
             player_direction = "U" if player_moving_up else "D" if player_moving_down else "N"
-            
+            # Send game data to the enemy
             if is_player_right:
                 self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
             else:
                 self.node.send_data_to_enemy(f"DATA {player_direction};{ball.transform.centerx};{ball.transform.centery}\n")
-
+            # Update ball position based on received enemy data
             if is_player_right:
                 ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
                 #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
@@ -339,12 +354,13 @@ class Client:
                         
 
            # ball.move([1,1])
+             # Render the game elements
             screen.fill(black)
             screen.blit(ball.model, ball.transform)
             screen.blit(player.model, player.transform)
             screen.blit(enemy.model, enemy.transform)
             screen.blit(text_surface, (width / 2 - 60, 0))
-
+            # Manage frame rate
             clock.tick(fps)
             pygame.display.flip()
 

@@ -418,9 +418,9 @@ class Client:
             if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
                 player.move((0, -player.velocity))
 
-            if enemyData.enemyDirection == "U":
+            if enemyData.enemyDirection == "U" and enemy.transform.centery + paddle_height / 2 <= height:
                 enemy.move((0, enemy.velocity))
-            if enemyData.enemyDirection == "D":
+            if enemyData.enemyDirection == "D" and enemy.transform.centery - paddle_height / 2 >= 0:
                 enemy.move((0, -enemy.velocity))
 
             self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")

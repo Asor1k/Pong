@@ -255,7 +255,7 @@ class Client:
             enemy.transform.center = (0, height/2)
             player.transform.center = (width, height/2)
 
-        fps = 30
+        fps = 60
         align_time = time.time()
         colided_time = 0
         score = (0, 0)
@@ -336,7 +336,8 @@ class Client:
                 align_time = time.time()
                 
                 enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyAlignedPositionY))
-                ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
+                if is_player_right:
+                    ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
             
             # enemyDirection;ballPositionX;ballPositionY
             # 
@@ -354,15 +355,16 @@ class Client:
             else:
                 self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
             
-            self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}")
-
             # Update ball position based on received enemy data
             if is_player_right:
                 #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
                 #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
                 ball.speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                ball.move()
             else:
                 ball.move()
+            
+            self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
 
             if player_moving_up:
                 player.move((0, player.velocity))

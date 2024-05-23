@@ -263,7 +263,7 @@ class Client:
         screen.fill(black)
         pygame.display.flip()
         hello_message = "HELLO\n"
-        self.node.send_data(hello_message)
+        self.node.server_connection.sendall(hello_message.encode())
 
         dot_number = 0
         while True:

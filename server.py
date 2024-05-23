@@ -106,7 +106,7 @@ class Peer:
             connect_address = address[0]
             if connect_address.startswith("127."):
                 connect_address = get_computer_remote_ip()
-            
+
 
             if connect_address in self.disconnected_players:
                 player = Player(connection, connect_address, address[1])

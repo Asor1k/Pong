@@ -60,6 +60,12 @@ class Peer:
         player2.connection.sendall(message2.encode())
         
         time.sleep(1)
+
+        quit_message = "QUIT"
+        player1.connection.sendall(quit_message.encode())
+        player2.connection.sendall(quit_message.encode())
+        
+        time.sleep(1)
         player1.connection.close()
         player2.connection.close()
 

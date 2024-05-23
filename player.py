@@ -139,8 +139,10 @@ class Peer:
                     data += connection.recv(1).decode("utf-8")
                     if data == "" or data[-1:] == "\n" or not data :
                        break
-                    if data == "":
+                    if not data:
                         raise Exception("Connection was closed!")
+                if data.startswith("QUIT"):
+                    break
                 print(f"Received data from {address}: {data}")
                 self.handle_data(data)
             except socket.error:

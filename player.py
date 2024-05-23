@@ -399,21 +399,21 @@ class Client:
             if is_player_right:
                 self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
             else:
-                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
+                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.transform.centerx};{ball.ball.transform.centery}\n")
             
             # Update ball position based on received enemy data
             if is_player_right:
-                #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
-                #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+                ball.transform.center = (enemyData.ballSpeedX, float(enemyData.ballSpeedY))
+                ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
                 
-                gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
-                ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
-                gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
-                if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
-                    # Fraud data detected - ignore it then. Correct data will come afterwards
-                    gotten_speed = ball.speed
-
-                ball.speed = gotten_speed
+                #gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                #ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
+                #gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
+                #if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
+                #    # Fraud data detected - ignore it then. Correct data will come afterwards
+                #    gotten_speed = ball.speed
+#
+                #ball.speed = gotten_speed
                 
                 ball.move()
             else:

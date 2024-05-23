@@ -11,7 +11,7 @@ is_started_game = False
 
 class EnemyData:
     def __init__(self) -> None:
-        self.enemyPositiony = float(0)
+        self.enemyDirection = "N"   # N - None; U - Up; D - Down
         self.ballPositionX = float(0)
         self.ballPositionY = float(0)
 
@@ -66,7 +66,7 @@ class Peer:
             replaced = data.replace("DATA", "")
             global enemyData
             values = replaced.split(";")
-            enemyData.enemyPositiony = float(values[0])
+            enemyData.enemyDirection = values[0]
             enemyData.ballPositionX = float(values[1])
             enemyData.ballPositionY = float(values[2])
         if data.startswith("START"):
@@ -149,7 +149,7 @@ class Player:
         self.model = model
         self.model = pygame.transform.scale(self.model, (25, 100))
         self.transform = self.model.get_rect()
-        self.player_velocity = 5
+        self.velocity = 5
     def move(self, speed):
         self.transform = self.transform.move(speed)
 
@@ -307,34 +307,36 @@ class Client:
                     time.sleep(0.2)
                     ball.reset()
 
-            # ownPosition;ballPositionX;ballPositionY
+            # enemyDirection;ballPositionX;ballPositionY
+            # 
 
             #enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
-            enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))
+            #enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))
             
             text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
-
-            if time.time() - send_wait_time >= 0.5 / fps:
-                if is_player_right:
-                    self.node.send_data_to_enemy(f"DATA {player.transform.centery};-1;-1\n")
-                else:
-                    self.node.send_data_to_enemy(f"DATA {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
-                send_wait_time = time.time()
-
-            if time.time() - start_time >= 1.0 / fps:
-                if is_player_right:
-                    ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
-                    #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
-                else:
-                    ball.move()
-
-                if player_moving_up:
-                    player.move((0, player.player_velocity))
-                if player_moving_down:
-                    player.move((0, -player.player_velocity))
-
-                start_time = time.time()
+            player_direction = "U" if player_moving_up else "D" if player_moving_down else "N"
             
+            if is_player_right:
+                self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
+            else:
+                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.transform.centerx};{ball.transform.centery}\n")
+
+            if is_player_right:
+                ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
+                #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+            else:
+                ball.move()
+                
+            if player_moving_up:
+                player.move((0, player.velocity))
+            if player_moving_down:
+                player.move((0, -player.velocity))
+            if player_direction == "U":
+                enemy.move((0, enemy.velocity))
+            if player_direction == "D":
+                enemy.move((0, -enemy.velocity))
+
+                        
 
            # ball.move([1,1])
             screen.fill(black)

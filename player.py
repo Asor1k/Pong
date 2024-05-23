@@ -374,9 +374,9 @@ class Client:
             if time.time() - align_time >= 1:
                 align_time = time.time()
                 
-                enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyAlignedPositionY))
+                enemy.transform = enemy.transform.move((0, float(enemyData.enemyAlignedPositionY) - enemy.transform))
                 if is_player_right:
-                    ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
+                    ball.transform = ball.transform.move((float(enemyData.ballAlignedPositionX) - ball.transform.centerx, float(enemyData.ballAlignedPositionY) - ball.transform.centery))
             
             # enemyDirection;ballPositionX;ballPositionY
             # 
@@ -402,8 +402,8 @@ class Client:
                 gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
                 ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
                 gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
-                if gotten_velocity - ball_velocity >= 0.1:
-                    #Fraud data detected - ignore it then. Correct data will come afterwards
+                if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
+                    # Fraud data detected - ignore it then. Correct data will come afterwards
                     gotten_speed = ball.speed
 
                 ball.speed = gotten_speed

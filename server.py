@@ -33,6 +33,8 @@ class Peer:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections = []
         self.players = []
+        self.disconnected_players = []
+        self.waiting_hanging_players = [] # (opponentAddress, address)
 
 
     def connect(self, peer_host, peer_port):
@@ -41,6 +43,17 @@ class Peer:
         self.connections.append(connection)
         print(f"Connected to {peer_host}:{peer_port}")
         return connection
+
+    def disconnect_from_players(self, connection1, connection2):
+        quit_message = "QUIT"
+        connection1.sendall(quit_message.encode())
+        connection2.connection.sendall(quit_message.encode())
+
+        time.sleep(1)
+        connection1.connection.close()
+        connection2.connection.close()
+
+
 
     # Send messages to two players to start the game
     def start_fight(self, player1, player2):
@@ -60,14 +73,9 @@ class Peer:
         player2.connection.sendall(message2.encode())
         
         time.sleep(1)
-
-        quit_message = "QUIT"
-        player1.connection.sendall(quit_message.encode())
-        player2.connection.sendall(quit_message.encode())
-        
-        time.sleep(1)
-        player1.connection.close()
-        player2.connection.close()
+        self.disconnect_from_players(player1, player2)
+        self.players.remove(player1)
+        self.players.remove(player2)
 
      # Listen for incoming connections
     def listen(self):
@@ -99,18 +107,35 @@ class Peer:
             if connect_address.startswith("127."):
                 connect_address = get_computer_remote_ip()
             
-            disconnected_players = [x for x in self.players if x.is_in_fight and x.address == connect_address]
 
-            if len(disconnected_players) == 1:
-                player = disconnected_players[0]
-                player.connection = self.connect(player.address, player.port)
-                opponent_find = [x for x in self.players if x.is_in_fight and x.address == player.opponent_address]
-                if len(opponent_find) == 1:
-                    opponent = opponent_find[0]
-                    opponent.connection = self.connect(opponent.address, opponent.port)
-                    player.connection.sendall(f"CONTINUE {player.side} {opponent.address}:{opponent.port}\n")
-                    opponent.connection.sendall(f"ACTIVE CONTINUE\n")
-                    return
+            if connect_address in self.disconnected_players:
+                player = Player(connection, connect_address, address[1])
+                #player.connection = self.connect(player.address, player.port)
+                #opponent_find = [x for x in self.players if x.is_in_fight and x.address == player.opponent_address]
+                #if len(opponent_find) == 1:
+                #opponent = opponent_find[0]
+                temp = dict(self.waiting_hanging_players)
+
+                connection = self.connect(connect_address, 8000)
+                connection.sendall(f"CONTINUE {player.side} {temp[connect_address]}:{8000}\n")
+                opponent_connection = self.connect(temp[connect_address], 8000)
+                opponent_connection.sendall(f"ACTIVE CONTINUE\n")
+
+                self.disconnect_from_players(connection, opponent_connection)
+                return
+
+            #disconnected_players = [x for x in self.players if x.is_in_fight and x.address == connect_address]
+
+            #if len(disconnected_players) == 1:
+            #    player = disconnected_players[0]
+            #    player.connection = self.connect(player.address, player.port)
+            #    opponent_find = [x for x in self.players if x.is_in_fight and x.address == player.opponent_address]
+            #    if len(opponent_find) == 1:
+            #        opponent = opponent_find[0]
+            #        opponent.connection = self.connect(opponent.address, opponent.port)
+            #        player.connection.sendall(f"CONTINUE {player.side} {opponent.address}:{opponent.port}\n")
+            #        opponent.connection.sendall(f"ACTIVE CONTINUE\n")
+            #        return
 
             # If no players are connected, connect to the new player
             connection = self.connect(connect_address, 8000)
@@ -122,8 +147,17 @@ class Peer:
             if len(self.players) > 1:
                 players_not_in_fight = [x for x in self.players if not x.is_in_fight]
                 self.start_fight(players_not_in_fight[0], players_not_in_fight[1])
-                
+        
+        if data.startswith("DISCONNECTED"):
+            replaced = data.replace("DISCONNECTED", "").strip()
+            self.disconnected_players.append(replaced)
+            self.waiting_hanging_players.append((replaced, address))
 
+        if data.startswith("QUIT WAITING"):
+            replaced = data.replace("QUIT WAITING", "").strip()
+            self.disconnected_players.remove(replaced)
+            self.waiting_hanging_players.remove((replaced, address))
+                
     # Handle communication with a connected client
     def handle_client(self, connection, address):
         while True:

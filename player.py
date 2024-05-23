@@ -36,7 +36,12 @@ class Peer:
         self.connections.append(connection)
         print(f"Connected to {peer_host}:{peer_port}")
         return connection
-
+    
+    # Connect to another peer
+    def connect_to_server(self, peer_host, peer_port):
+        self.server_connection = socket.create_connection((peer_host, peer_port))
+        print(f"Connected to {peer_host}:{peer_port}")
+    
     # Listen for incoming connections
     def listen(self):
         self.socket.bind((self.host, self.port))
@@ -112,6 +117,9 @@ class Peer:
             self.enemyConnection = self.connect(self.enemyAddress, self.enemyPort)
             time.sleep(1)
             is_opponent_dropped = False
+
+        if data.startswith("QUIT"):
+            self.server_connection.close()
 
 
     # Send data to all connections
@@ -244,7 +252,7 @@ class Client:
 
         print("Connecting to the server...")
         try:
-            self.node.connect(server_host, server_port)
+            self.node.connect_to_server(server_host, server_port)
         except socket.error as err:
             print("Unable to connect to the server! " + str(err))
             exit()
@@ -379,7 +387,6 @@ class Client:
                     ball.transform = ball.transform.move((float(enemyData.ballAlignedPositionX) - ball.transform.centerx, float(enemyData.ballAlignedPositionY) - ball.transform.centery))
             
             # enemyDirection;ballPositionX;ballPositionY
-            # 
 
             #enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
             #enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))

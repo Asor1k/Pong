@@ -403,8 +403,8 @@ class Client:
             
             # Update ball position based on received enemy data
             if is_player_right:
-                ball.transform.center = (enemyData.ballSpeedX, float(enemyData.ballSpeedY))
-                ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+                #ball.transform.center = (enemyData.ballSpeedX, float(enemyData.ballSpeedY))
+                ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballSpeedX, ball.transform.centery - enemyData.ballSpeedY))
                 
                 #gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
                 #ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)

@@ -1,6 +1,5 @@
 import socket
 import threading
-from pyngrok import ngrok
 import os
 
 def get_computer_remote_ip():
@@ -55,8 +54,9 @@ class Peer:
 
         while True:
             connection, address = self.socket.accept()
+            
             self.connections.append(connection)
-            print(f"Accepted connection from {address[0]} {address[1]}")
+            print(f"Accepted connection from {address}")
             #Connect back to player
             #self.connect(address[0], address[1])
             threading.Thread(target=self.handle_client, args=(connection, address)).start()
@@ -81,7 +81,6 @@ class Peer:
                 connection.sendall("HELLO YOU TOO\n".encode())
 
             if len(self.players) >= 1:
-
                 connection = self.connect(connect_address, 8000)
                 time.sleep(1)
                 connection.sendall("HELLO YOU TOO\n".encode())
@@ -123,17 +122,6 @@ if __name__ == "__main__":
     node2 = Peer("0.0.0.0", 8002)
     node2.start()
    
-   # os.environ["HOST"] = "0.tcp.ngrok.io"
-
-
-    #host = os.environ.get("HOST")
-    #port = int(os.environ.get("PORT"))
-
-    #print(host)
-    #time.sleep(1)
-    # Open a ngrok tunnel to the socket
-    #public_url = ngrok.connect(port, "tcp", remote_addr=f"{host}:{port}").public_url
-    #print(f"ngrok tunnel \"{public_url}\" -> \"tcp://127.0.0.1:{port}\"")
 
 #rd_2gpj0qyZlza1whSoCwo0TQ7jyNf
 #included-serval-amazingly.ngrok-free.app

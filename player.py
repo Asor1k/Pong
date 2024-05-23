@@ -116,8 +116,8 @@ class Peer:
 
 size = width, height = 1024, 512
 black = 0,0,0
-server_host = "0.tcp.eu.ngrok.io"
-server_port = 18601
+server_host = "26.49.11.40"
+server_port = 8002
 
 
 class Ball:
@@ -220,8 +220,6 @@ class Client:
         MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
         paddle_height = 100
 
-
-
         ball = Ball(pygame.image.load("ball.jpg"), ball_speed)
         ball.reset()
         player = Player(pygame.image.load("player.jpg"))
@@ -276,8 +274,6 @@ class Client:
                     bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
                     ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
                     ball.accumulated_speed = (0, 0)
-                    print(ball.speed)
-                    print(bounceAngle)
                     ball.move()
                     colided_time = time.time()
 
@@ -287,8 +283,6 @@ class Client:
                     bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
                     ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
                     ball.accumulated_speed = (0, 0)
-                    print(ball.speed)
-                    print(bounceAngle)
                     ball.move()
                     colided_time = time.time()
 

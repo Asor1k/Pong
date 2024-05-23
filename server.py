@@ -53,8 +53,8 @@ class Peer:
         message1 = f"START GAME WITH {player1.side} {player2.address}:{player2.port}\n"
         message2 = f"START GAME WITH {player2.side} {player1.address}:{player1.port}\n"
 
-        player1.add_opponent(player2.connection, player2.address)
-        player2.add_opponent(player1.connection, player1.address)
+        player1.add_opponent(player2.connection, player2.address, player2.port)
+        player2.add_opponent(player1.connection, player1.address, player2.port)
 
         player1.connection.sendall(message1.encode())
         player2.connection.sendall(message2.encode())
@@ -151,8 +151,6 @@ class Peer:
     
 
 if __name__ == "__main__":
-
-
     import time
     time.sleep(2)
 

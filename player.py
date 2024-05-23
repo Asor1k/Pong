@@ -139,11 +139,12 @@ class Peer:
                     data += connection.recv(1).decode("utf-8")
                     if data == "" or data[-1:] == "\n" or not data :
                        break
-
+                    if data == "":
+                        raise Exception("Connection was closed!")
                 print(f"Received data from {address}: {data}")
                 self.handle_data(data)
             except socket.error:
-                if connection == self.enemyConnection:
+                if address[0] == self.enemyAddress:
                     # Opponent dropped, handle it
                     global is_opponent_dropped
                     is_opponent_dropped = True

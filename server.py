@@ -47,11 +47,11 @@ class Peer:
     def disconnect_from_players(self, connection1, connection2):
         quit_message = "QUIT"
         connection1.sendall(quit_message.encode())
-        connection2.connection.sendall(quit_message.encode())
+        connection2.sendall(quit_message.encode())
 
         time.sleep(1)
-        connection1.connection.close()
-        connection2.connection.close()
+        connection1.close()
+        connection2.close()
 
 
 
@@ -73,7 +73,7 @@ class Peer:
         player2.connection.sendall(message2.encode())
         
         time.sleep(1)
-        self.disconnect_from_players(player1, player2)
+        self.disconnect_from_players(player1.connection, player2.connection)
         self.players.remove(player1)
         self.players.remove(player2)
 
@@ -106,7 +106,6 @@ class Peer:
             connect_address = address[0]
             if connect_address.startswith("127."):
                 connect_address = get_computer_remote_ip()
-
 
             if connect_address in self.disconnected_players:
                 player = Player(connection, connect_address, address[1])

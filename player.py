@@ -249,37 +249,39 @@ class Client:
         score = (0, 0)
         send_wait_time = time.time()
         text_surface = my_font.render(get_score_text(0,0), False, (255, 255, 255))
-
+        # Notify the enemy that the game has started
         self.node.send_data_to_enemy("START\n")
+        # Wait for the game to start
         global is_started_game
         while not is_started_game:
             continue
-
+        # Initialize player movement flags
         player_moving_up = False
         player_moving_down = False
-        clock = pygame.time.Clock()
+        clock = pygame.time.Clock()    # Create a clock object to manage the frame rate
 
         while True:
+             # Handle events
             for event in pygame.event.get():
-                if event.type == pygame.QUIT: sys.exit()
-                if event.type == pygame.KEYDOWN:
+                if event.type == pygame.QUIT: sys.exit()    # Quit the game
+                if event.type == pygame.KEYDOWN:    # Handle key press events
                     if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                         player_moving_up = True
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = True
 
-                if event.type == pygame.KEYUP:
+                if event.type == pygame.KEYUP:    # Handle key release events
                     if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                         player_moving_up = False
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = False                
 
             if time.time() - colided_time > 0.4:
-
+                # Check for collisions and handle ball movement
                 leftTransform = enemy.transform if is_player_right else player.transform
                 rightTransform = player.transform if is_player_right else enemy.transform
 
-                if ball.transform.colliderect(leftTransform):
+                if ball.transform.colliderect(leftTransform):    # Ball collides with left paddle
                     relativeIntersectY = ball.transform.centery - leftTransform.centery
                     normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
                     bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
@@ -288,7 +290,7 @@ class Client:
                     ball.move()
                     colided_time = time.time()
 
-                if ball.transform.colliderect(rightTransform):
+                if ball.transform.colliderect(rightTransform):    # Ball collides with right paddle
                     relativeIntersectY = ball.transform.centery - rightTransform.centery
                     normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
                     bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
@@ -298,20 +300,20 @@ class Client:
                     colided_time = time.time()
 
 
-                if (ball.transform.top <= 0 or ball.transform.bottom >= height):
+                if (ball.transform.top <= 0 or ball.transform.bottom >= height):    # Ball collides with top or bottom wall
                     ball.accumulated_speed = (0, 0)
                     ball.speed = (ball.speed[0], -ball.speed[1])
                     ball.move()
                     colided_time = time.time()
 
-                if ball.transform.centerx >= width:
+                if ball.transform.centerx >= width:     # Ball exits right side
                     # Player left scored a point
                     score = (score[0] + 1, score[1])
                     colided_time = time.time()
                     time.sleep(0.2)
                     ball.reset()
 
-                if ball.transform.centerx <= 0:
+                if ball.transform.centerx <= 0:     # Ball exits left side
                     # Player right scored a point
                     score = (score[0], score[1] + 1)
                     colided_time = time.time()
@@ -323,15 +325,17 @@ class Client:
 
             #enemy.transform = enemy.transform.move((enemy.transform.centerx - enemy.transform.centerx, enemy.transform.centery - enemyData.enemyPositiony))
             #enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyPositiony))
-            
+
+            # Update the score display
             text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
+            # Determine player direction for data transmission
             player_direction = "U" if player_moving_up else "D" if player_moving_down else "N"
-            
+            # Send game data to the enemy
             if is_player_right:
                 self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
             else:
                 self.node.send_data_to_enemy(f"DATA {player_direction};{ball.transform.centerx};{ball.transform.centery}\n")
-
+            # Update ball position based on received enemy data
             if is_player_right:
                 ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
                 #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
@@ -350,12 +354,13 @@ class Client:
                         
 
            # ball.move([1,1])
+             # Render the game elements
             screen.fill(black)
             screen.blit(ball.model, ball.transform)
             screen.blit(player.model, player.transform)
             screen.blit(enemy.model, enemy.transform)
             screen.blit(text_surface, (width / 2 - 60, 0))
-
+            # Manage frame rate
             clock.tick(fps)
             pygame.display.flip()
 

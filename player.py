@@ -116,7 +116,7 @@ class Peer:
 
 size = width, height = 1024, 512
 black = 0,0,0
-server_host = "26.49.11.40"
+server_host = "192.168.0.175"
 server_port = 8002
 
 
@@ -326,14 +326,14 @@ class Client:
                 #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
             else:
                 ball.move()
-                
+
             if player_moving_up:
                 player.move((0, player.velocity))
             if player_moving_down:
                 player.move((0, -player.velocity))
-            if player_direction == "U":
+            if enemyData.enemyDirection == "U":
                 enemy.move((0, enemy.velocity))
-            if player_direction == "D":
+            if enemyData.enemyDirection == "D":
                 enemy.move((0, -enemy.velocity))
 
                         

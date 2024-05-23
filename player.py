@@ -374,7 +374,7 @@ class Client:
             if time.time() - align_time >= 1:
                 align_time = time.time()
                 
-                enemy.transform = enemy.transform.move((0, float(enemyData.enemyAlignedPositionY) - enemy.transform))
+                enemy.transform = enemy.transform.move((0, float(enemyData.enemyAlignedPositionY) - enemy.transform.centery))
                 if is_player_right:
                     ball.transform = ball.transform.move((float(enemyData.ballAlignedPositionX) - ball.transform.centerx, float(enemyData.ballAlignedPositionY) - ball.transform.centery))
             

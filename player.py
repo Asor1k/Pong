@@ -12,8 +12,12 @@ is_started_game = False
 class EnemyData:
     def __init__(self) -> None:
         self.enemyDirection = "N"   # N - None; U - Up; D - Down
-        self.ballPositionX = float(0)
-        self.ballPositionY = float(0)
+        self.ballSpeedX = float(0)
+        self.ballSpeedY = float(0)
+        self.ballAlignedPositionX = float(0)
+        self.ballAlignedPositionY = float(0)
+        self.enemyAlignedPositionY = float(0)
+
 
 enemyData = EnemyData()
 
@@ -67,12 +71,20 @@ class Peer:
             self.start_game(replaced.split(":"))
             
         if data.startswith("DATA"):
-            replaced = data.replace("DATA", "")
+            replaced = data.replace("DATA", "").strip()
             global enemyData
             values = replaced.split(";")
             enemyData.enemyDirection = values[0]
-            enemyData.ballPositionX = float(values[1])
-            enemyData.ballPositionY = float(values[2])
+            enemyData.ballSpeedX = float(values[1])
+            enemyData.ballSpeedY = float(values[2])
+        if data.startswith("ALIGN"):
+            replaced = data.replace("ALIGN", "").strip()
+            global enemyData
+            values = replaced.split(";")
+            enemyData.enemyAlignedPositionY = values[0]
+            enemyData.ballAlignedPositionX = float(values[1])
+            enemyData.ballAlignedPositionY = float(values[2])
+
         if data.startswith("START"):
             global is_started_game
             is_started_game = True
@@ -243,11 +255,10 @@ class Client:
             enemy.transform.center = (0, height/2)
             player.transform.center = (width, height/2)
 
-        fps = 60
-        start_time = time.time()
+        fps = 30
+        align_time = time.time()
         colided_time = 0
         score = (0, 0)
-        send_wait_time = time.time()
         text_surface = my_font.render(get_score_text(0,0), False, (255, 255, 255))
         # Notify the enemy that the game has started
         self.node.send_data_to_enemy("START\n")
@@ -276,7 +287,7 @@ class Client:
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = False                
 
-            if time.time() - colided_time > 0.4:
+            if time.time() - colided_time > 0.3:
                 # Check for collisions and handle ball movement
                 leftTransform = enemy.transform if is_player_right else player.transform
                 rightTransform = player.transform if is_player_right else enemy.transform
@@ -310,16 +321,23 @@ class Client:
                     # Player left scored a point
                     score = (score[0] + 1, score[1])
                     colided_time = time.time()
-                    time.sleep(0.2)
+                    #time.sleep(0.2) Send to reset ball
+
                     ball.reset()
 
                 if ball.transform.centerx <= 0:     # Ball exits left side
                     # Player right scored a point
                     score = (score[0], score[1] + 1)
                     colided_time = time.time()
-                    time.sleep(0.2)
+                    #time.sleep(0.2)
                     ball.reset()
 
+            if time.time() - align_time >= 1:
+                align_time = time.time()
+                
+                enemy.transform.center = (enemy.transform.centerx, float(enemyData.enemyAlignedPositionY))
+                ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
+            
             # enemyDirection;ballPositionX;ballPositionY
             # 
 
@@ -334,11 +352,15 @@ class Client:
             if is_player_right:
                 self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
             else:
-                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.transform.centerx};{ball.transform.centery}\n")
+                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
+            
+            self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}")
+
             # Update ball position based on received enemy data
             if is_player_right:
-                ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
+                #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
                 #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+                ball.speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
             else:
                 ball.move()
 

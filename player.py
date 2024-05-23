@@ -415,7 +415,7 @@ class Client:
             if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
                 player.move((0, player.velocity))
 
-            if player_moving_down and player.transform.centey - paddle_height / 2 >= 0:
+            if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
                 player.move((0, -player.velocity))
 
             if enemyData.enemyDirection == "U":

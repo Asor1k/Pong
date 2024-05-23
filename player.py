@@ -223,10 +223,10 @@ def check_collision(ball, paddle):
     next_pos = (ball.transform.centerx + ball.speed[0], ball.transform.centery + ball.speed[1])
     
     # Paddle boundaries
-    paddle_top = paddle.transform.top
-    paddle_bottom = paddle.transform.bottom
-    paddle_left = paddle.transform.left
-    paddle_right = paddle.transform.right
+    paddle_top = paddle.top
+    paddle_bottom = paddle.bottom
+    paddle_left = paddle.left
+    paddle_right = paddle.right
     
     # Check if the ball's path intersects with the paddle
     if paddle_left <= next_pos[0] <= paddle_right and paddle_top <= next_pos[1] <= paddle_bottom:

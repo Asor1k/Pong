@@ -151,6 +151,7 @@ class Peer:
             replaced = data.replace("DISCONNECTED", "").strip()
             self.disconnected_players.append(replaced)
             self.waiting_hanging_players.append((replaced, address))
+            
 
         if data.startswith("QUIT WAITING"):
             replaced = data.replace("QUIT WAITING", "").strip()

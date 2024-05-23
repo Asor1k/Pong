@@ -167,6 +167,10 @@ class Peer:
                     # Opponent dropped, handle it
                     global is_opponent_dropped
                     is_opponent_dropped = True
+                    self.connect_to_server(server_host, server_port)
+                    time.sleep(1)
+                    disconnected_message = f"DISCONNECTED {self.enemyAddress}"
+                    self.server_connection.sendall(disconnected_message.encode())
                 break
 
         print(f"Connection from {address} closed.")
@@ -228,7 +232,6 @@ def get_score_text(x,y):
 
 def check_collision(ball, paddle):
     # Ball's current and next position
-    #current_pos = ball.transform.center
     next_pos = (ball.transform.centerx + 2 * ball.speed[0], ball.transform.centery + 2 * ball.speed[1])
     
     # Paddle boundaries
@@ -370,6 +373,13 @@ class Client:
                         player_moving_up = False
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = False                
+
+            if is_opponent_dropped:
+                screen.fill(black)
+                text_surface = my_font.render("Your opponents connection dropped, please wait", False, (255, 255, 255))
+                screen.blit(text_surface, (width / 2 - 500, height / 2 - 50))
+                pygame.display.flip()
+                continue
 
 
             if time.time() - align_time >= 1:

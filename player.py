@@ -412,10 +412,12 @@ class Client:
             else:
                 ball.move()
             
-            if player_moving_up:
+            if player_moving_up and player.transform.centey + paddle_height / 2 <= height:
                 player.move((0, player.velocity))
-            if player_moving_down:
+
+            if player_moving_down and player.transform.centey - paddle_height / 2 >= 0:
                 player.move((0, -player.velocity))
+                
             if enemyData.enemyDirection == "U":
                 enemy.move((0, enemy.velocity))
             if enemyData.enemyDirection == "D":
@@ -486,7 +488,7 @@ class Client:
                 ball.reset()
                 score = enemyData.score
 
-
+            
 
            # ball.move([1,1])
              # Render the game elements

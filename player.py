@@ -69,17 +69,17 @@ class Peer:
             replaced = replaced[1:].strip()
 
             self.start_game(replaced.split(":"))
-            
+        
+        global enemyData
+
         if data.startswith("DATA"):
             replaced = data.replace("DATA", "").strip()
-            global enemyData
             values = replaced.split(";")
             enemyData.enemyDirection = values[0]
             enemyData.ballSpeedX = float(values[1])
             enemyData.ballSpeedY = float(values[2])
         if data.startswith("ALIGN"):
             replaced = data.replace("ALIGN", "").strip()
-            global enemyData
             values = replaced.split(";")
             enemyData.enemyAlignedPositionY = values[0]
             enemyData.ballAlignedPositionX = float(values[1])

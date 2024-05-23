@@ -313,7 +313,8 @@ class Client:
         time.sleep(3)
 
         ball_speed = 5
-        MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
+        MAX_BOUNCE_ANGLE = 0.9599 # 55 degrees
+
         paddle_height = 100
         # Initialize game objects
         ball = Ball(pygame.image.load("cat.png"), ball_speed)
@@ -464,27 +465,14 @@ class Client:
                 collided_right = False
             if time.time() - left_delay >= 0.3:
                 collided_left = False
-
                 
             if ball.transform.centerx >= width and not is_player_right:     # Ball exits right side
                 # Player left scored a point
                 score = (score[0] + 1, score[1])
-                
-                temp = time.time()
-                self.node.send_data_to_enemy("SCORE L\n")
-                #while True:
-                #    if time.time() - temp >= 3:
-                #        break
-#
-                #    #scored_player = "First" if score[0] != enemyData.score[0] else "Second"
-                #    text_surface = my_font.render(f"First player scored a goal!", False, (255, 255, 255))
-                #    screen.blit(text_surface, (width / 2 - 200, height / 2 - 50))
-                #    screen.fill(black)
-                #    pygame.display.flip()
-                #           
-                ball.reset()
 
-                #player.transform.center = (player.transform.centerx, height / 2)
+                self.node.send_data_to_enemy("SCORE L\n")
+
+                ball.reset()
 
             if ball.transform.centerx <= 0 and not is_player_right:     # Ball exits left side
                 # Player right scored a point
@@ -492,35 +480,10 @@ class Client:
 
                 self.node.send_data_to_enemy("SCORE R\n")
 
-                temp = time.time()
-                #while True:
-                #    if time.time() - temp >= 3:
-                #        break
-#
-                #    #scored_player = "First" if score[0] != enemyData.score[0] else "Second"
-                #    text_surface = my_font.render(f"Second player scored a goal!", False, (255, 255, 255))
-                #    screen.blit(text_surface, (width / 2 - 200, height / 2 - 50))
-                #    screen.fill(black)
-                #    pygame.display.flip()
                 ball.reset()
-
-                #player.transform.center = (player.transform.centerx, height / 2)
-
-                #time.sleep(0.2)
 
             if enemyData.score != score and is_player_right:
-                temp = time.time()
-                #while True:
-                #    if time.time() - temp >= 3:
-                #        break
-#
-                #    scored_player = "First" if score[0] != enemyData.score[0] else "Second"
-                #    text_surface = my_font.render(f"{scored_player} player scored a goal!", False, (255, 255, 255))
-                #    screen.blit(text_surface, (width / 2 - 200, height / 2 - 50))
-                #    screen.fill(black)
-                #    pygame.display.flip()
                 ball.reset()
-                #player.transform.center = (player.transform.centerx, height / 2)
                 score = enemyData.score
 
 

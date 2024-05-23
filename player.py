@@ -412,12 +412,12 @@ class Client:
             else:
                 ball.move()
             
-            if player_moving_up and player.transform.centey + paddle_height / 2 <= height:
+            if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
                 player.move((0, player.velocity))
 
             if player_moving_down and player.transform.centey - paddle_height / 2 >= 0:
                 player.move((0, -player.velocity))
-                
+
             if enemyData.enemyDirection == "U":
                 enemy.move((0, enemy.velocity))
             if enemyData.enemyDirection == "D":

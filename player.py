@@ -17,19 +17,22 @@ class EnemyData:
 
 enemyData = EnemyData()
 
+# Peer class to handle networking
 class Peer:
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections = []
-
+    
+    # Connect to another peer
     def connect(self, peer_host, peer_port):
         connection = socket.create_connection((peer_host, peer_port))
         self.connections.append(connection)
         print(f"Connected to {peer_host}:{peer_port}")
         return connection
 
+    # Listen for incoming connections
     def listen(self):
         self.socket.bind((self.host, self.port))
         self.socket.listen(10)
@@ -42,14 +45,15 @@ class Peer:
             threading.Thread(target=self.handle_client, args=(connection, address)).start()
             # Let's say we get this connection from the server. Make dynamic and move elsewhere 
             #self.connect("127.0.0.1", 8002)
-
+    
+    # Start the game with an enemy at the given address
     def start_game(self, address):
         self.enemyConnection = self.connect(address[0], 8000)
         print(f"Connected with player on {address[0]}:{address[1]}")
         global is_connected
         is_connected = True
 
-
+    # Handle incoming data
     def handle_data(self, data):
         if data.startswith("START GAME WITH"):
             replaced = data.replace("START GAME WITH", "")
@@ -74,6 +78,7 @@ class Peer:
             is_started_game = True
             print("Got start!")
 
+    # Send data to all connections
     def send_data(self, data):
         for connection in self.connections:
             try:
@@ -108,7 +113,8 @@ class Peer:
         print(f"Connection from {address} closed.")
         self.connections.remove(connection)
         connection.close()
-
+   
+    # Start listening for connections
     def start(self):
         listen_thread = threading.Thread(target=self.listen)
         listen_thread.start()
@@ -119,7 +125,7 @@ black = 0,0,0
 server_host = "26.49.11.40"
 server_port = 8002
 
-
+# Ball class to represent the pong ball
 class Ball:
     def __init__(self, model, velocity):
         self.model = model
@@ -130,26 +136,30 @@ class Ball:
         self.speed = (0, 0)
 
     def move(self):
+        # Update accumulated speed
         self.accumulated_speed = (self.accumulated_speed[0] + self.speed[0], self.accumulated_speed[1] + self.speed[1])
-
+         # Determine the integer movement step
         step_move_speed = (int(self.accumulated_speed[0]), int(self.accumulated_speed[1]))
-
+        # Update accumulated speed to reflect the fractional part
         self.accumulated_speed = (self.accumulated_speed[0] - step_move_speed[0], self.accumulated_speed[1] - step_move_speed[1])
-
+        # Move the ball's position
         self.transform = self.transform.move(step_move_speed)
-
+        
+    # Reset the ball to the center of the screen and set its initial speed
     def reset(self):
         self.transform.center = (width/2, height/2)
         self.speed = (-self.velocity, 0)
 
 
-
+# Player class to represent the paddles
 class Player:
     def __init__(self, model):
         self.model = model
         self.model = pygame.transform.scale(self.model, (25, 100))
         self.transform = self.model.get_rect()
         self.velocity = 5
+        
+    # Move the paddle based on the given speed
     def move(self, speed):
         self.transform = self.transform.move(speed)
 
@@ -157,7 +167,7 @@ class Player:
 def get_score_text(x,y):
     return f"{x} : {y}"
 
-
+# Client class to handle game logic and communication
 class Client:
     def __init__(self, port):
         self.node = Peer("0.0.0.0", port)
@@ -165,13 +175,14 @@ class Client:
         self.start_game()
 
     def start_game(self):
+        # Initialize Pygame and set up the screen
         pygame.init()
         pygame.font.init() 
         pygame.display.set_caption('Pong')
 
         my_font = pygame.font.SysFont('Futura', 60)
         screen = pygame.display.set_mode(size)
-
+         # Show welcome screen until mouse is clicked
         while True:
             clicked = False
             for event in pygame.event.get():
@@ -219,7 +230,7 @@ class Client:
         ball_speed = 5
         MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
         paddle_height = 100
-
+        # Initialize game objects
         ball = Ball(pygame.image.load("ball.jpg"), ball_speed)
         ball.reset()
         player = Player(pygame.image.load("player.jpg"))

@@ -484,7 +484,7 @@ class Client:
                 #           
                 ball.reset()
 
-                player.transform.center = (player.transform.centerx, height / 2)
+                #player.transform.center = (player.transform.centerx, height / 2)
 
             if ball.transform.centerx <= 0 and not is_player_right:     # Ball exits left side
                 # Player right scored a point
@@ -504,7 +504,7 @@ class Client:
                 #    pygame.display.flip()
                 ball.reset()
 
-                player.transform.center = (player.transform.centerx, height / 2)
+                #player.transform.center = (player.transform.centerx, height / 2)
 
                 #time.sleep(0.2)
 
@@ -520,7 +520,7 @@ class Client:
                 #    screen.fill(black)
                 #    pygame.display.flip()
                 ball.reset()
-                player.transform.center = (player.transform.centerx, height / 2)
+                #player.transform.center = (player.transform.centerx, height / 2)
                 score = enemyData.score
 
 

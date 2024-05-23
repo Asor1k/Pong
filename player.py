@@ -8,6 +8,7 @@ enemy_address = ("0.0.0.0", 8000)
 is_connected = False
 is_player_right = False
 is_started_game = False
+is_opponent_dropped = False
 
 class EnemyData:
     def __init__(self) -> None:
@@ -18,7 +19,6 @@ class EnemyData:
         self.ballAlignedPositionY = float(0)
         self.enemyAlignedPositionY = float(0)
 
-
 enemyData = EnemyData()
 
 # Peer class to handle networking
@@ -28,6 +28,7 @@ class Peer:
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections = []
+        self.enemyConnection = None
     
     # Connect to another peer
     def connect(self, peer_host, peer_port):
@@ -46,31 +47,35 @@ class Peer:
             connection, address = self.socket.accept()
             self.connections.append(connection)
             print(f"Accepted connection from {address}")
-            threading.Thread(target=self.handle_client, args=(connection, address)).start()
+            threading.Thread(target=self.handle_client, args=(connection, address), daemon=True).start()
             # Let's say we get this connection from the server. Make dynamic and move elsewhere 
-            #self.connect("127.0.0.1", 8002)
-    
+            # self.connect("127.0.0.1", 8002)
+
     # Start the game with an enemy at the given address
     def start_game(self, address):
         self.enemyConnection = self.connect(address[0], 8000)
+        self.enemyAddress = address[0]
+        self.enemyPort = 8000
         print(f"Connected with player on {address[0]}:{address[1]}")
         global is_connected
         is_connected = True
 
     # Handle incoming data
     def handle_data(self, data):
+        global is_player_right
+        global enemyData
+        global is_started_game
+        global is_opponent_dropped
+
         if data.startswith("START GAME WITH"):
             replaced = data.replace("START GAME WITH", "")
             replaced = replaced.strip()
-            global is_player_right
             if replaced[0] == 'R':
                 is_player_right = True
 
             replaced = replaced[1:].strip()
 
             self.start_game(replaced.split(":"))
-        
-        global enemyData
 
         if data.startswith("DATA"):
             replaced = data.replace("DATA", "").strip()
@@ -78,6 +83,7 @@ class Peer:
             enemyData.enemyDirection = values[0]
             enemyData.ballSpeedX = float(values[1])
             enemyData.ballSpeedY = float(values[2])
+
         if data.startswith("ALIGN"):
             replaced = data.replace("ALIGN", "").strip()
             values = replaced.split(";")
@@ -86,9 +92,27 @@ class Peer:
             enemyData.ballAlignedPositionY = float(values[2])
 
         if data.startswith("START"):
-            global is_started_game
             is_started_game = True
             print("Got start!")
+
+        if data.startswith("CONTINUE"):
+            replaced = data.replace("CONTINUE", "")
+            replaced = replaced.strip()
+            if replaced[0] == 'R':
+                is_player_right = True
+
+            replaced = replaced[1:].strip()
+
+            self.start_game(replaced.split(":"))
+            time.sleep(1)
+
+            is_started_game = True
+
+        if data.startswith("ACTIVE CONTINUE"):
+            self.enemyConnection = self.connect(self.enemyAddress, self.enemyPort)
+            time.sleep(1)
+            is_opponent_dropped = False
+
 
     # Send data to all connections
     def send_data(self, data):
@@ -107,7 +131,6 @@ class Peer:
            # self.connections.remove(self.enemyConnection)
 
 
-
     def handle_client(self, connection, address):
         while True:
             try:
@@ -120,6 +143,10 @@ class Peer:
                 print(f"Received data from {address}: {data}")
                 self.handle_data(data)
             except socket.error:
+                if connection == self.enemyConnection:
+                    # Opponent dropped, handle it
+                    global is_opponent_dropped
+                    is_opponent_dropped = True
                 break
 
         print(f"Connection from {address} closed.")
@@ -128,7 +155,7 @@ class Peer:
    
     # Start listening for connections
     def start(self):
-        listen_thread = threading.Thread(target=self.listen)
+        listen_thread = threading.Thread(target=self.listen, daemon=True)
         listen_thread.start()
 
 
@@ -205,19 +232,16 @@ class Client:
             if clicked:
                 break
             screen.fill(black)
-            hello_text_surface = my_font.render("WELCOME TO PONG!", False, (255, 255, 255))
-            hello_text_surface2 = my_font.render("PRESS ANY MOUSE BUTTON", False, (255, 255, 255))
-            hello_text_surface3 = my_font.render("TO CONNECT TO WAITING QUEUE", False, (255, 255, 255))
 
-            screen.blit(hello_text_surface, (width / 2 - 200, height / 2 - 50))
-            screen.blit(hello_text_surface2, (width / 2 - 250, height / 2))
-            screen.blit(hello_text_surface3, (width / 2 - 300, height / 2 + 50))
+            welcome_image = pygame.image.load("welcomeText.png")
+            welcome_image.get_rect().center = (width/2, height/2)
+
+            screen.blit(welcome_image, welcome_image.get_rect())
             pygame.display.flip()
 
         print("Connecting to the server...")
         try:
             self.node.connect(server_host, server_port)
-            time.sleep(1)
         except socket.error as err:
             print("Unable to connect to the server! " + str(err))
             exit()
@@ -230,10 +254,22 @@ class Client:
         hello_message = "HELLO\n"
         self.node.send_data(hello_message)
 
+        dot_number = 0
         while True:
             if is_connected:
                 break
-            time.sleep(1)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: sys.exit()
+
+            screen.fill(black)
+            text_surface = my_font.render("Waiting in the queue" + "." * dot_number, False, (255, 255, 255))
+            screen.blit(text_surface, (width / 2 - 150, height / 2))
+
+            pygame.display.flip()
+            dot_number += 1
+            if dot_number == 4:
+                dot_number = 0
+            time.sleep(0.5)
             print("Waiting in the queue...")
 
         print("Connected!")
@@ -359,13 +395,20 @@ class Client:
             if is_player_right:
                 #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
                 #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
-                ball.speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                
+                gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
+                gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
+                if gotten_velocity - ball_velocity >= 0.1:
+                    #Fraud data detected - ignore it then. Correct data will come afterwards
+                    gotten_speed = ball.speed
+
+                ball.speed = gotten_speed
+                
                 ball.move()
             else:
                 ball.move()
             
-            self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
-
             if player_moving_up:
                 player.move((0, player.velocity))
             if player_moving_down:
@@ -375,7 +418,8 @@ class Client:
             if enemyData.enemyDirection == "D":
                 enemy.move((0, -enemy.velocity))
 
-                        
+            self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
+
 
            # ball.move([1,1])
              # Render the game elements

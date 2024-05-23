@@ -12,11 +12,15 @@ class Player:
         self.address = address
         self.port = port
         self.connection = connection
+        self.is_in_fight = False
 
-
+    def add_opponent(self, opponent_connection, opponent_address, port):
+        self.opponent_connection = opponent_connection
+        self.opponent_address = opponent_address
+        self.opponent_port = port
+        
 
 # GET - HELLO\n
-
 
 
 # SEND - FOUND ENEMY {IP}:{PORT}\n 
@@ -40,11 +44,24 @@ class Peer:
 
     # Send messages to two players to start the game
     def start_fight(self, player1, player2):
-        message1 = f"START GAME WITH L {player2.address}:{player2.port}\n"
-        message2 = f"START GAME WITH R {player1.address}:{player1.port}\n"
-        
+        player1.is_in_fight = True
+        player2.is_in_fight = True
+
+        player1.side = "L"
+        player2.side = "R"
+
+        message1 = f"START GAME WITH {player1.side} {player2.address}:{player2.port}\n"
+        message2 = f"START GAME WITH {player2.side} {player1.address}:{player1.port}\n"
+
+        player1.add_opponent(player2.connection, player2.address)
+        player2.add_opponent(player1.connection, player1.address)
+
         player1.connection.sendall(message1.encode())
         player2.connection.sendall(message2.encode())
+        
+        time.sleep(1)
+        player1.connection.close()
+        player2.connection.close()
 
      # Listen for incoming connections
     def listen(self):
@@ -75,19 +92,31 @@ class Peer:
             connect_address = address[0]
             if connect_address.startswith("127."):
                 connect_address = get_computer_remote_ip()
+            
+            disconnected_players = [x for x in self.players if x.is_in_fight and x.address == connect_address]
+
+            if len(disconnected_players) == 1:
+                player = disconnected_players[0]
+                player.connection = self.connect(player.address, player.port)
+                opponent_find = [x for x in self.players if x.is_in_fight and x.address == player.opponent_address]
+                if len(opponent_find) == 1:
+                    opponent = opponent_find[0]
+                    opponent.connection = self.connect(opponent.address, opponent.port)
+                    player.connection.sendall(f"CONTINUE {player.side} {opponent.address}:{opponent.port}\n")
+                    opponent.connection.sendall(f"ACTIVE CONTINUE\n")
+                    return
+
             # If no players are connected, connect to the new player
-            if len(self.players) == 0:
-                connection = self.connect(connect_address, 8000)
-                time.sleep(1)
-                connection.sendall("HELLO YOU TOO\n".encode())
-             # If a player is already connected, start a game between the new and existing player
-            if len(self.players) >= 1:
-                connection = self.connect(connect_address, 8000)
-                time.sleep(1)
-                connection.sendall("HELLO YOU TOO\n".encode())
-                self.start_fight(self.players[-1], Player(connection, connect_address, address[1]))
-                self.players.remove(self.players[-1])
+            connection = self.connect(connect_address, 8000)
+            time.sleep(1)
+            connection.sendall("HELLO TO YOU TOO\n".encode())
             self.players.append(Player(connection, connect_address, address[1]))
+            
+            # If a player is already connected, start a game between the new and existing player
+            if len(self.players) > 1:
+                players_not_in_fight = [x for x in self.players if not x.is_in_fight]
+                self.start_fight(players_not_in_fight[0], players_not_in_fight[1])
+                
 
     # Handle communication with a connected client
     def handle_client(self, connection, address):
@@ -104,6 +133,11 @@ class Peer:
 
             except socket.error as inst:
                 print(inst)
+                players = [x for x in self.players if not x.is_in_fight and x.address == address[0]]
+                print(address)
+                if len(players) > 0:
+                    player_left_not_fight = players[0]
+                    self.players.remove(player_left_not_fight)
                 break
 
         print(f"Connection from {address} closed.")
@@ -117,6 +151,7 @@ class Peer:
     
 
 if __name__ == "__main__":
+
 
     import time
     time.sleep(2)

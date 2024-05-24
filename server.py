@@ -34,7 +34,7 @@ class Peer:
         self.connections = []
         self.players = []
         self.disconnected_players = []
-        self.waiting_hanging_players = [] # (opponentAddress, address)
+        self.waiting_hanging_players = [] # (opponentAddress, (address, side))
 
 
     def connect(self, peer_host, peer_port):
@@ -45,7 +45,7 @@ class Peer:
         return connection
 
     def disconnect_from_players(self, connection1, connection2):
-        quit_message = "QUIT"
+        quit_message = "QUIT\n"
         connection1.sendall(quit_message.encode())
         connection2.sendall(quit_message.encode())
 
@@ -108,7 +108,6 @@ class Peer:
                 connect_address = get_computer_remote_ip()
 
             if connect_address in self.disconnected_players:
-                player = Player(connection, connect_address, address[1])
                 #player.connection = self.connect(player.address, player.port)
                 #opponent_find = [x for x in self.players if x.is_in_fight and x.address == player.opponent_address]
                 #if len(opponent_find) == 1:
@@ -116,9 +115,12 @@ class Peer:
                 temp = dict(self.waiting_hanging_players)
 
                 connection = self.connect(connect_address, 8000)
-                connection.sendall(f"CONTINUE {player.side} {temp[connect_address]}:{8000}\n")
+
+                continue_message = f"CONTINUE {temp[connect_address][1]} {temp[connect_address][0]}:{8000}\n"
+
+                connection.sendall(continue_message.encode())
                 opponent_connection = self.connect(temp[connect_address], 8000)
-                opponent_connection.sendall(f"ACTIVE CONTINUE\n")
+                opponent_connection.sendall(f"ACTIVE CONTINUE\n".encode())
 
                 self.disconnect_from_players(connection, opponent_connection)
                 return
@@ -149,14 +151,16 @@ class Peer:
         
         if data.startswith("DISCONNECTED"):
             replaced = data.replace("DISCONNECTED", "").strip()
-            self.disconnected_players.append(replaced)
-            self.waiting_hanging_players.append((replaced, address))
+            values = replaced.split(";")
+            self.disconnected_players.append(values[0])
+            self.waiting_hanging_players.append((values[0], (address, values[1])))
             
 
         if data.startswith("QUIT WAITING"):
             replaced = data.replace("QUIT WAITING", "").strip()
-            self.disconnected_players.remove(replaced)
-            self.waiting_hanging_players.remove((replaced, address))
+            values = replaced.split(";")
+            self.disconnected_players.remove(values[0])
+            self.waiting_hanging_players.remove((values[0], (address, values[1])))
                 
     # Handle communication with a connected client
     def handle_client(self, connection, address):
@@ -167,6 +171,9 @@ class Peer:
                     data += connection.recv(1).decode("utf-8")
                     if data == "" or data[-1:] == "\n" or not data :
                        break
+
+                if not data:
+                    break
 
                 print(f"Received data from {address}: {data}")
                 self.handle_data(data, address)

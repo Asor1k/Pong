@@ -9,6 +9,8 @@ is_connected = False
 is_player_right = False
 is_started_game = False
 is_opponent_dropped = False
+player_won = "None"
+is_player_won = True
 
 class EnemyData:
     def __init__(self) -> None:
@@ -163,13 +165,15 @@ class Peer:
                 print(f"Received data from {address}: {data}")
                 self.handle_data(data)
             except socket.error:
+                print(address[0])
                 if address[0] == self.enemyAddress:
                     # Opponent dropped, handle it
                     global is_opponent_dropped
                     is_opponent_dropped = True
                     self.connect_to_server(server_host, server_port)
                     time.sleep(1)
-                    disconnected_message = f"DISCONNECTED {self.enemyAddress}"
+                    side = "R" if is_player_right else "L"
+                    disconnected_message = f"DISCONNECTED {self.enemyAddress};{side}\n"
                     self.server_connection.sendall(disconnected_message.encode())
                 break
 
@@ -381,6 +385,15 @@ class Client:
                 pygame.display.flip()
                 continue
 
+            #if is_player_won:
+            #    while True:
+            #        screen.fill(black)
+            #        text_surface = my_font.render("Your opponents connection dropped, please wait", False, (255, 255, 255))
+            #        screen.blit(text_surface, (width / 2 - 500, height / 2 - 50))
+            #        pygame.display.flip()
+            #        continue
+
+            
 
             if time.time() - align_time >= 1:
                 align_time = time.time()
@@ -477,12 +490,18 @@ class Client:
                 collided_right = False
             if time.time() - left_delay >= 0.3:
                 collided_left = False
-                
+            
+            global is_player_won
+
             if ball.transform.centerx >= width and not is_player_right:     # Ball exits right side
                 # Player left scored a point
                 score = (score[0] + 1, score[1])
-
+                
                 self.node.send_data_to_enemy("SCORE L\n")
+
+                #if score[0] >= 13:
+                #    self.node.send_data_to_enemy("WON L")
+                #    is_player_won = True
 
                 ball.reset()
 
@@ -491,6 +510,9 @@ class Client:
                 score = (score[0], score[1] + 1)
 
                 self.node.send_data_to_enemy("SCORE R\n")
+                #if score[0] >= 13:
+                #    self.node.send_data_to_enemy("WON L")
+                #    is_player_won = True
 
                 ball.reset()
 

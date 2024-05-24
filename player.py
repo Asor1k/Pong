@@ -460,11 +460,12 @@ class Client:
            #     ball.move()
             ball.move()
             
-            if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
-                player.move((0, player.velocity))
-
-            if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
-                player.move((0, -player.velocity))
+            if not (enemyData.step_got_align and sent_align and not aligned):
+                if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
+                    player.move((0, player.velocity))
+    
+                if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
+                    player.move((0, -player.velocity))
 
             #if enemyData.enemyDirection == "U" and enemy.transform.centery + paddle_height / 2 <= height:
             #    enemy.move((0, enemy.velocity))

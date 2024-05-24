@@ -9,6 +9,8 @@ is_connected = False
 is_player_right = False
 is_started_game = False
 is_opponent_dropped = False
+player_won = "None"
+is_player_won = True
 
 class EnemyData:
     def __init__(self) -> None:
@@ -18,6 +20,7 @@ class EnemyData:
         self.ballAlignedPositionX = float(0)
         self.ballAlignedPositionY = float(0)
         self.enemyAlignedPositionY = float(0)
+        self.score = (0,0)
 
 enemyData = EnemyData()
 
@@ -89,6 +92,14 @@ class Peer:
             enemyData.ballSpeedX = float(values[1])
             enemyData.ballSpeedY = float(values[2])
 
+        if data.startswith("SCORE"):
+            replaced = data.replace("SCORE", "").strip()
+            who_scored = replaced
+            if who_scored == "L":
+                enemyData.score = (enemyData.score[0] + 1, enemyData.score[1])
+            else:
+                enemyData.score = (enemyData.score[0], enemyData.score[1] + 1)
+
         if data.startswith("ALIGN"):
             replaced = data.replace("ALIGN", "").strip()
             values = replaced.split(";")
@@ -154,10 +165,16 @@ class Peer:
                 print(f"Received data from {address}: {data}")
                 self.handle_data(data)
             except socket.error:
+                print(address[0])
                 if address[0] == self.enemyAddress:
                     # Opponent dropped, handle it
                     global is_opponent_dropped
                     is_opponent_dropped = True
+                    self.connect_to_server(server_host, server_port)
+                    time.sleep(1)
+                    side = "R" if is_player_right else "L"
+                    disconnected_message = f"DISCONNECTED {self.enemyAddress};{side}\n"
+                    self.server_connection.sendall(disconnected_message.encode())
                 break
 
         print(f"Connection from {address} closed.")
@@ -216,6 +233,22 @@ class Player:
 
 def get_score_text(x,y):
     return f"{x} : {y}"
+
+def check_collision(ball, paddle):
+    # Ball's current and next position
+    next_pos = (ball.transform.centerx + 2 * ball.speed[0], ball.transform.centery + 2 * ball.speed[1])
+    
+    # Paddle boundaries
+    paddle_top = paddle.top
+    paddle_bottom = paddle.bottom
+    paddle_left = paddle.left
+    paddle_right = paddle.right
+    
+    # Check if the ball's path intersects with the paddle
+    if paddle_left <= next_pos[0] <= paddle_right and paddle_top <= next_pos[1] <= paddle_bottom:
+        return True
+    return False
+
 
 # Client class to handle game logic and communication
 class Client:
@@ -287,10 +320,11 @@ class Client:
         time.sleep(3)
 
         ball_speed = 5
-        MAX_BOUNCE_ANGLE = 5 * 3.14 / 12
+        MAX_BOUNCE_ANGLE = 0.9599 # 55 degrees
+
         paddle_height = 100
         # Initialize game objects
-        ball = Ball(pygame.image.load("ball.jpg"), ball_speed)
+        ball = Ball(pygame.image.load("cat.png"), ball_speed)
         ball.reset()
         player = Player(pygame.image.load("player.jpg"))
         enemy = Player(pygame.image.load("player.jpg"))
@@ -318,6 +352,16 @@ class Client:
         player_moving_down = False
         clock = pygame.time.Clock()    # Create a clock object to manage the frame rate
 
+        collided_up = False
+        collided_down = False
+        collided_right = False
+        collided_left = False
+        up_delay = time.time()
+        down_delay = time.time()
+        right_delay = time.time()
+        left_delay = time.time()
+
+
         while True:
              # Handle events
             for event in pygame.event.get():
@@ -334,6 +378,22 @@ class Client:
                     if event.key == pygame.K_UP or event.key == pygame.K_w:
                         player_moving_down = False                
 
+            if is_opponent_dropped:
+                screen.fill(black)
+                text_surface = my_font.render("Your opponents connection dropped, please wait", False, (255, 255, 255))
+                screen.blit(text_surface, (width / 2 - 500, height / 2 - 50))
+                pygame.display.flip()
+                continue
+
+            #if is_player_won:
+            #    while True:
+            #        screen.fill(black)
+            #        text_surface = my_font.render("Your opponents connection dropped, please wait", False, (255, 255, 255))
+            #        screen.blit(text_surface, (width / 2 - 500, height / 2 - 50))
+            #        pygame.display.flip()
+            #        continue
+
+            
 
             if time.time() - align_time >= 1:
                 align_time = time.time()
@@ -355,82 +415,112 @@ class Client:
             if is_player_right:
                 self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
             else:
-                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.transform.centerx};{ball.transform.centery}\n")
+                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
             
             # Update ball position based on received enemy data
             if is_player_right:
-                #ball.transform.center = (enemyData.ballSpeedX, float(enemyData.ballSpeedY))
-                ball.transform = ball.transform.move((enemyData.ballSpeedX - ball.transform.centerx,enemyData.ballSpeedY - ball.transform.centery))
+                #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
+                #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
                 
-                #gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
-                #ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
-                #gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
-                #if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
-                #    # Fraud data detected - ignore it then. Correct data will come afterwards
-                #    gotten_speed = ball.speed
-#
-                #ball.speed = gotten_speed
+                gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
+                gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
+                if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
+                    # Fraud data detected - ignore it then. Correct data will come afterwards
+                    gotten_speed = ball.speed
+
+                ball.speed = gotten_speed
                 
                 ball.move()
             else:
                 ball.move()
             
-            if player_moving_up:
+            if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
                 player.move((0, player.velocity))
-            if player_moving_down:
+
+            if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
                 player.move((0, -player.velocity))
-            if enemyData.enemyDirection == "U":
+
+            if enemyData.enemyDirection == "U" and enemy.transform.centery + paddle_height / 2 <= height:
                 enemy.move((0, enemy.velocity))
-            if enemyData.enemyDirection == "D":
+            if enemyData.enemyDirection == "D" and enemy.transform.centery - paddle_height / 2 >= 0:
                 enemy.move((0, -enemy.velocity))
 
             self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
             
-            if time.time() - colided_time > 0.3:
-                # Check for collisions and handle ball movement
-                leftTransform = enemy.transform if is_player_right else player.transform
-                rightTransform = player.transform if is_player_right else enemy.transform
+            # Check for collisions and handle ball movement
+            leftTransform = enemy.transform if is_player_right else player.transform
+            rightTransform = player.transform if is_player_right else enemy.transform
+            if (ball.transform.colliderect(leftTransform) or check_collision(ball, leftTransform)) and not collided_left:    # Ball collides with left paddle
+                relativeIntersectY = ball.transform.centery - leftTransform.centery
+                normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
+                bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
+                ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
+                ball.accumulated_speed = (0, 0)
+                ball.move()
+                collided_left = True
+                left_delay = time.time()
 
-                if ball.transform.colliderect(leftTransform):    # Ball collides with left paddle
-                    relativeIntersectY = ball.transform.centery - leftTransform.centery
-                    normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
-                    bounceAngle = normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
-                    ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
-                    ball.accumulated_speed = (0, 0)
-                    ball.move()
-                    colided_time = time.time()
+            if (ball.transform.colliderect(rightTransform) or check_collision(ball, leftTransform)) and not collided_right:    # Ball collides with right paddle
+                relativeIntersectY = ball.transform.centery - rightTransform.centery
+                normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
+                bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
+                ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
+                ball.accumulated_speed = (0, 0)
+                ball.move()
+                collided_right = True
+                right_delay = time.time()
 
-                if ball.transform.colliderect(rightTransform):    # Ball collides with right paddle
-                    relativeIntersectY = ball.transform.centery - rightTransform.centery
-                    normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))
-                    bounceAngle = 3.14 - normalizedRelativeIntersectionY * MAX_BOUNCE_ANGLE
-                    ball.speed = (ball.velocity * math.cos(bounceAngle), ball.velocity * math.sin(bounceAngle))
-                    ball.accumulated_speed = (0, 0)
-                    ball.move()
-                    colided_time = time.time()
+            if ((ball.transform.top <= 0 or ball.transform.bottom >= height)) and (not collided_up or not collided_down) :    # Ball collides with top or bottom wall
+                if ball.transform.top <= 0:
+                    collided_down = True
+                    down_delay = time.time()
+                else:
+                    collided_up = True
+                    up_delay = time.time()
+                ball.accumulated_speed = (0, 0)
+                ball.speed = (ball.speed[0], -ball.speed[1])
+                ball.move()
+                
+            if time.time() - down_delay >= 0.3:
+                collided_down = False
+            if time.time() - up_delay >= 0.3:
+                collided_up = False
+            if time.time() - right_delay >= 0.3:
+                collided_right = False
+            if time.time() - left_delay >= 0.3:
+                collided_left = False
+            
+            global is_player_won
 
+            if ball.transform.centerx >= width and not is_player_right:     # Ball exits right side
+                # Player left scored a point
+                score = (score[0] + 1, score[1])
+                
+                self.node.send_data_to_enemy("SCORE L\n")
 
-                if (ball.transform.top <= 0 or ball.transform.bottom >= height):    # Ball collides with top or bottom wall
-                    ball.accumulated_speed = (0, 0)
-                    ball.speed = (ball.speed[0], -ball.speed[1])
-                    ball.move()
-                    colided_time = time.time()
+                #if score[0] >= 13:
+                #    self.node.send_data_to_enemy("WON L")
+                #    is_player_won = True
 
-                if ball.transform.centerx >= width:     # Ball exits right side
-                    # Player left scored a point
-                    score = (score[0] + 1, score[1])
-                    colided_time = time.time()
-                    #time.sleep(0.2) Send to reset ball
+                ball.reset()
 
-                    ball.reset()
+            if ball.transform.centerx <= 0 and not is_player_right:     # Ball exits left side
+                # Player right scored a point
+                score = (score[0], score[1] + 1)
 
-                if ball.transform.centerx <= 0:     # Ball exits left side
-                    # Player right scored a point
-                    score = (score[0], score[1] + 1)
-                    colided_time = time.time()
-                    #time.sleep(0.2)
-                    ball.reset()
+                self.node.send_data_to_enemy("SCORE R\n")
+                #if score[0] >= 13:
+                #    self.node.send_data_to_enemy("WON L")
+                #    is_player_won = True
 
+                ball.reset()
+
+            if enemyData.score != score and is_player_right:
+                ball.reset()
+                score = enemyData.score
+
+            
 
            # ball.move([1,1])
              # Render the game elements

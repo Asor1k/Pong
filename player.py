@@ -472,7 +472,7 @@ class Client:
             #    enemy.move((0, -enemy.velocity))
 
             if not aligned and not sent_align and not is_player_right:
-                self.node.send_data_to_enemy(f"ALIGN {enemy.transform.centery};{player.transform.centery};{enemyData.ballSpeedX};{enemyData.ballSpeedY};{enemyData.ballAlignedPositionX};{enemyData.ballAlignedPositionY}\n") # ALIGN {player1.pos};{player2.pos};{ball.speedX};{ball.speedY};{ball.posX}{ball.posY}
+                self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{enemy.transform.centery};{enemyData.ballSpeedX};{enemyData.ballSpeedY};{enemyData.ballAlignedPositionX};{enemyData.ballAlignedPositionY}\n") # ALIGN {player1.pos};{player2.pos};{ball.speedX};{ball.speedY};{ball.posX}{ball.posY}
                 sent_align = True
 
             if not aligned and enemyData.step_got_align and is_player_right:
@@ -480,12 +480,14 @@ class Client:
                 sent_align = True
 
             if enemyData.step_got_align and sent_align and not aligned:
-                ball.transform.center = (enemyData.ballAlignedPositionX, float(enemyData.ballAlignedPositionY))
-                player.transform.center = (player.transform.centerx, enemyData.playerPositionY)
-                enemy.transform.center = (enemy.transform.centerx, enemyData.enemyAlignedPositionY)
-                ball.speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                if is_player_right:
+                    ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
+                player.transform.center = (float(player.transform.centerx), float(enemyData.playerPositionY))
+                enemy.transform.center = (float(enemy.transform.centerx), float(enemyData.enemyAlignedPositionY))
+                ball.speed = (float(enemyData.ballSpeedX), float(enemyData.ballSpeedY))
                 aligned = True
                 enemyData.step_got_align = False
+                sent_align = False
 
             # Check for collisions and handle ball movement
             leftTransform = enemy.transform if is_player_right else player.transform

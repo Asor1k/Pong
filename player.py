@@ -20,8 +20,10 @@ class EnemyData:
         self.ballSpeedY = float(0)
         self.ballAlignedPositionX = float(0)
         self.ballAlignedPositionY = float(0)
+        self.playerPositionY = float(0)
         self.enemyAlignedPositionY = float(0)
         self.score = (0,0)
+        self.step_got_align = False
 
 enemyData = EnemyData()
 
@@ -101,12 +103,21 @@ class Peer:
             else:
                 enemyData.score = (enemyData.score[0], enemyData.score[1] + 1)
 
-        if data.startswith("ALIGN"):
+        if data.startswith("ALIGN"): # ALIGN {player1.pos};{player2.pos};{ball.speedX};{ball.speedY};{ball.posX}{ball.posY}
             replaced = data.replace("ALIGN", "").strip()
             values = replaced.split(";")
-            enemyData.enemyAlignedPositionY = values[0]
-            enemyData.ballAlignedPositionX = float(values[1])
-            enemyData.ballAlignedPositionY = float(values[2])
+            if is_player_right:
+                enemyData.enemyAlignedPositionY = values[0]
+                enemyData.playerPositionY = values[1]
+            else:
+                enemyData.playerPositionY = values[0]
+                enemyData.enemyAlignedPositionY = values[1]
+
+            enemyData.ballSpeedX = float(values[2])
+            enemyData.ballSpeedY = float(values[3])
+            enemyData.ballAlignedPositionX = float(values[4])
+            enemyData.ballAlignedPositionY = float(values[5])
+            enemyData.step_got_align = True
 
         if data.startswith("START"):
             is_started_game = True
@@ -357,6 +368,8 @@ class Client:
         collided_down = False
         collided_right = False
         collided_left = False
+        sent_align = False
+        aligned = False
         up_delay = time.time()
         down_delay = time.time()
         right_delay = time.time()
@@ -386,6 +399,8 @@ class Client:
                 pygame.display.flip()
                 continue
 
+            if aligned:
+                aligned = False
             #if is_player_won:
             #   while True:
             #        screen.fill(black)
@@ -403,12 +418,11 @@ class Client:
 
             
 
-            if time.time() - align_time >= 1:
-                align_time = time.time()
-                
-                enemy.transform = enemy.transform.move((0, float(enemyData.enemyAlignedPositionY) - enemy.transform.centery))
-                if is_player_right:
-                    ball.transform = ball.transform.move((float(enemyData.ballAlignedPositionX) - ball.transform.centerx, float(enemyData.ballAlignedPositionY) - ball.transform.centery))
+            #if enemyData.step_aligned:
+            #    enemy.transform = enemy.transform.move((0, float(enemyData.enemyAlignedPositionY) - enemy.transform.centery))
+            #    if is_player_right:
+            #        ball.transform = ball.transform.move((float(enemyData.ballAlignedPositionX) - ball.transform.centerx, float(enemyData.ballAlignedPositionY) - ball.transform.centery))
+            #    enemyData.step_aligned = False
             
             # enemyDirection;ballPositionX;ballPositionY
 
@@ -418,32 +432,33 @@ class Client:
             # Update the score display
             text_surface = my_font.render(get_score_text(score[0], score[1]), False, (255, 255, 255))
             # Determine player direction for data transmission
-            player_direction = "U" if player_moving_up else "D" if player_moving_down else "N"
+            #player_direction = "U" if player_moving_up else "D" if player_moving_down else "N"
             # Send game data to the enemy
-            if is_player_right:
-                if random() > 0.5:
-                    self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
-            else:
-                if random() > 0.5:
-                    self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
+            #if is_player_right:
+            #    if random.random() > 0.5:
+            #        self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
+            #else:
+            #    if random.random() > 0.5:
+            #        self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
             
             # Update ball position based on received enemy data
-            if is_player_right:
-                #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
-                #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
-                
-                gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
-                ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
-                gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
-                if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
-                    # Fraud data detected - ignore it then. Correct data will come afterwards
-                    gotten_speed = ball.speed
-
-                ball.speed = gotten_speed
-                
-                ball.move()
-            else:
-                ball.move()
+           # if is_player_right:
+           #     #ball.transform.center = (enemyData.ballPositionX, float(enemyData.ballPositionY))
+           #     #ball.transform = ball.transform.move((ball.transform.centerx - enemyData.ballPositionX, ball.transform.centery - enemyData.ballPositionY))
+           #     
+           #     gotten_speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+           #     ball_velocity = math.sqrt(ball.speed[0]**2 + ball.speed[1]**2)
+           #     gotten_velocity = math.sqrt(gotten_speed[0]**2 + gotten_speed[1]**2)
+           #     if gotten_velocity - ball_velocity >= 0.2 and is_player_right:
+           #         # Fraud data detected - ignore it then. Correct data will come afterwards
+           #         gotten_speed = ball.speed
+#
+           #     ball.speed = gotten_speed
+           #     
+           #     ball.move()
+           # else:
+           #     ball.move()
+            ball.move()
             
             if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
                 player.move((0, player.velocity))
@@ -451,17 +466,31 @@ class Client:
             if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
                 player.move((0, -player.velocity))
 
-            if enemyData.enemyDirection == "U" and enemy.transform.centery + paddle_height / 2 <= height:
-                enemy.move((0, enemy.velocity))
-            if enemyData.enemyDirection == "D" and enemy.transform.centery - paddle_height / 2 >= 0:
-                enemy.move((0, -enemy.velocity))
+            #if enemyData.enemyDirection == "U" and enemy.transform.centery + paddle_height / 2 <= height:
+            #    enemy.move((0, enemy.velocity))
+            #if enemyData.enemyDirection == "D" and enemy.transform.centery - paddle_height / 2 >= 0:
+            #    enemy.move((0, -enemy.velocity))
 
-            if random() > 0.5:
-                self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
-            
+            if not aligned and not sent_align and not is_player_right:
+                self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{enemy.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n") # ALIGN {player1.pos};{player2.pos};{ball.speedX};{ball.speedY};{ball.posX}{ball.posY}
+                sent_align = True
+
+            if not aligned and enemyData.step_got_align and is_player_right:
+                self.node.send_data_to_enemy(f"ALIGN {enemy.transform.centery};{player.transform.centery};{enemyData.ballAlignedPositionX};{enemyData.ballAlignedPositionY}\n") # ALIGN {player1.pos};{player2.pos};{ball.posX}{ball.posY}
+                sent_align = True
+
+            if enemyData.step_got_align and sent_align and not aligned:
+                ball.transform.center = (enemyData.ballAlignedPositionX, float(enemyData.ballAlignedPositionY))
+                player.transform.center = (player.transform.centerx, enemyData.playerPositionY)
+                enemy.transform.center = (enemy.transform.centerx, enemyData.enemyAlignedPositionY)
+                ball.speed = (enemyData.ballSpeedX, enemyData.ballSpeedY)
+                aligned = True
+                enemyData.step_got_align = False
+
             # Check for collisions and handle ball movement
             leftTransform = enemy.transform if is_player_right else player.transform
             rightTransform = player.transform if is_player_right else enemy.transform
+
             if (ball.transform.colliderect(leftTransform) or check_collision(ball, leftTransform)) and not collided_left:    # Ball collides with left paddle
                 relativeIntersectY = ball.transform.centery - leftTransform.centery
                 normalizedRelativeIntersectionY = (relativeIntersectY / (paddle_height / 2))

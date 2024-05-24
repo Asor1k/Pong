@@ -520,7 +520,7 @@ class Client:
                 #if score[0] >= 13:
                 #    self.node.send_data_to_enemy("WON L")
                 #    is_player_won = True
-#
+
                 ball.reset()
 
             if ball.transform.centerx <= 0 and not is_player_right:     # Ball exits left side
@@ -551,10 +551,11 @@ class Client:
             if enemyData.step_got_align and sent_align and not aligned:
                 if is_player_right:
                     ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
+                    ball.speed = (float(enemyData.ballSpeedX), float(enemyData.ballSpeedY))
 
                 player.transform.center = (float(player.transform.centerx), float(enemyData.playerPositionY))
                 enemy.transform.center = (float(enemy.transform.centerx), float(enemyData.enemyAlignedPositionY))
-                ball.speed = (float(enemyData.ballSpeedX), float(enemyData.ballSpeedY))
+                
 
                 if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
                     player.move((0, player.velocity))

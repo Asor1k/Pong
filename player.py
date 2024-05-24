@@ -2,6 +2,7 @@ import socket
 import threading
 import pygame, sys
 import time, math
+import random
 
 
 enemy_address = ("0.0.0.0", 8000)
@@ -189,7 +190,7 @@ class Peer:
 
 size = width, height = 1024, 512
 black = 0,0,0
-server_host = "192.168.0.175"
+server_host = "172.20.10.4"
 server_port = 8002
 
 # Ball class to represent the pong ball
@@ -386,9 +387,16 @@ class Client:
                 continue
 
             #if is_player_won:
-            #    while True:
+            #   while True:
             #        screen.fill(black)
-            #        text_surface = my_font.render("Your opponents connection dropped, please wait", False, (255, 255, 255))
+#
+            #        text = "You won!"   
+            #        if player_won == "R":
+            #            if is_player_right:
+            #                
+#
+            #            
+            #        text_surface = my_font.render("", False, (255, 255, 255))
             #        screen.blit(text_surface, (width / 2 - 500, height / 2 - 50))
             #        pygame.display.flip()
             #        continue
@@ -413,9 +421,11 @@ class Client:
             player_direction = "U" if player_moving_up else "D" if player_moving_down else "N"
             # Send game data to the enemy
             if is_player_right:
-                self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
+                if random() > 0.5:
+                    self.node.send_data_to_enemy(f"DATA {player_direction};-1;-1\n")
             else:
-                self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
+                if random() > 0.5:
+                    self.node.send_data_to_enemy(f"DATA {player_direction};{ball.speed[0]};{ball.speed[1]}\n")
             
             # Update ball position based on received enemy data
             if is_player_right:
@@ -446,7 +456,8 @@ class Client:
             if enemyData.enemyDirection == "D" and enemy.transform.centery - paddle_height / 2 >= 0:
                 enemy.move((0, -enemy.velocity))
 
-            self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
+            if random() > 0.5:
+                self.node.send_data_to_enemy(f"ALIGN {player.transform.centery};{ball.transform.centerx};{ball.transform.centery}\n")
             
             # Check for collisions and handle ball movement
             leftTransform = enemy.transform if is_player_right else player.transform
@@ -502,7 +513,7 @@ class Client:
                 #if score[0] >= 13:
                 #    self.node.send_data_to_enemy("WON L")
                 #    is_player_won = True
-
+#
                 ball.reset()
 
             if ball.transform.centerx <= 0 and not is_player_right:     # Ball exits left side
@@ -510,8 +521,8 @@ class Client:
                 score = (score[0], score[1] + 1)
 
                 self.node.send_data_to_enemy("SCORE R\n")
-                #if score[0] >= 13:
-                #    self.node.send_data_to_enemy("WON L")
+                #if score[1] >= 13:
+                #    self.node.send_data_to_enemy("WON R")
                 #    is_player_won = True
 
                 ball.reset()
@@ -521,7 +532,6 @@ class Client:
                 score = enemyData.score
 
             
-
            # ball.move([1,1])
              # Render the game elements
             screen.fill(black)

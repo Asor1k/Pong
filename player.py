@@ -459,14 +459,7 @@ class Client:
            # else:
            #     ball.move()
             ball.move()
-            
-            if not (enemyData.step_got_align and sent_align and not aligned):
-                if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
-                    player.move((0, player.velocity))
-    
-                if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
-                    player.move((0, -player.velocity))
-
+        
             #if enemyData.enemyDirection == "U" and enemy.transform.centery + paddle_height / 2 <= height:
             #    enemy.move((0, enemy.velocity))
             #if enemyData.enemyDirection == "D" and enemy.transform.centery - paddle_height / 2 >= 0:
@@ -478,7 +471,7 @@ class Client:
 
             if not aligned and enemyData.step_got_align and is_player_right:
                 self.node.send_data_to_enemy(f"ALIGN {enemy.transform.centery};{player.transform.centery};{enemyData.ballSpeedX};{enemyData.ballSpeedY};{enemyData.ballAlignedPositionX};{enemyData.ballAlignedPositionY}\n")
-                sent_align = True
+                sent_align = True                
 
             if enemyData.step_got_align and sent_align and not aligned:
                 if is_player_right:
@@ -486,9 +479,18 @@ class Client:
                 player.transform.center = (float(player.transform.centerx), float(enemyData.playerPositionY))
                 enemy.transform.center = (float(enemy.transform.centerx), float(enemyData.enemyAlignedPositionY))
                 ball.speed = (float(enemyData.ballSpeedX), float(enemyData.ballSpeedY))
+
+                if player_moving_up and player.transform.centery + paddle_height / 2 <= height:
+                    player.move((0, player.velocity))
+
+                if player_moving_down and player.transform.centery - paddle_height / 2 >= 0:
+                    player.move((0, -player.velocity))
+                
                 aligned = True
                 enemyData.step_got_align = False
                 sent_align = False
+
+
 
             # Check for collisions and handle ball movement
             leftTransform = enemy.transform if is_player_right else player.transform

@@ -331,7 +331,7 @@ class Client:
         print("Connected!")
         time.sleep(3)
 
-        ball_speed = 5
+        ball_speed = 8
         MAX_BOUNCE_ANGLE = 0.9599 # 55 degrees
 
         paddle_height = 100

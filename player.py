@@ -470,12 +470,14 @@ class Client:
                 sent_align = True
 
             if not aligned and enemyData.step_got_align and is_player_right:
-                self.node.send_data_to_enemy(f"ALIGN {enemy.transform.centery};{player.transform.centery};{enemyData.ballSpeedX};{enemyData.ballSpeedY};{enemyData.ballAlignedPositionX};{enemyData.ballAlignedPositionY}\n")
+
+                self.node.send_data_to_enemy(f"ALIGN {enemyData.enemyAlignedPositionY};{player.transform.centery};{enemyData.ballSpeedX};{enemyData.ballSpeedY};{enemyData.ballAlignedPositionX};{enemyData.ballAlignedPositionY}\n")
                 sent_align = True                
 
             if enemyData.step_got_align and sent_align and not aligned:
                 if is_player_right:
                     ball.transform.center = (float(enemyData.ballAlignedPositionX), float(enemyData.ballAlignedPositionY))
+                    
                 player.transform.center = (float(player.transform.centerx), float(enemyData.playerPositionY))
                 enemy.transform.center = (float(enemy.transform.centerx), float(enemyData.enemyAlignedPositionY))
                 ball.speed = (float(enemyData.ballSpeedX), float(enemyData.ballSpeedY))
